@@ -1,31 +1,22 @@
 import numpy as np
 
-
-def writeNNet(params,fileName):
+def writeNNet(params,keysW,keysb,inputMins,inputMaxes,means,ranges,fileName):
     '''
     Write network data to the .nnet file format
     
     params: dictionary of network variables. This can be extracted from tensorflow with
         params = sess.run(variable_dict)
         where variable_dict is a dictionary of network variables
-        
+    keysW: List of keys corresponding to weight matrices in the params dictionary
+    keysb: List of keys corresponding to bias vectors in the params dictionary
+    inputMins: List of minimum values for each input
+    inputMaxes: List of maximum values for each input
+    means: List of mean values for each input and a mean value for all outputs. Used to normalize inputs/outputs
+    ranges: List of range values for each input and a range value for all outputs. Used to normalize inputs/outputs
     fileName: File where the network will be written
     '''
 
-    #################
-    # These variables need to be edited for specific networks
-    #################
-    # Keys in params for the weights and biases
-    keysW = ['W1','W2','W3','W4','W5','W6','W7']
-    keysb = ['b1','b2','b3','b4','b5','b6','b7']
-    
-    # Min and max values used to bound the inputs
-    inputMins  = [499.0,-3.141593,-3.141593,100.0,0.0]
-    inputMaxes = [60760.0,3.141593,3.141593,1200.0,1200.0]
-    
-    # Mean and range values for normalizing the inputs and outputs. All outputs are normalized with the same value
-    means  = [1.9485976744e+04,0.0,0.0,468.777778,420.0,7.5188840201005975]
-    ranges = [60261.0,6.28318530718,6.28318530718,1100.0,1200.0,373.94992]
+   
     
     #Open the file we wish to write
     with open(fileName,'w') as f2:
