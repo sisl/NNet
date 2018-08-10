@@ -6,7 +6,7 @@ The .nnet file format for fully connected ReLU networks was originially created 
 This repository contains documentation on the .nnet format as well as example scripts to read/write .nnet files using Python, Julia, and C++.
 
 ### File Format of .nnet
-The .nnet file format is a text file format to describe fully connected ReLU neural networks. The file begins with a header line, some information about the network architecture, normalization information, and then model parameters. Line by line:<br/><br/>
+The file begins with a header line, some information about the network architecture, normalization information, and then model parameters. Line by line:<br/><br/>
     **1**: Header text<br/>
     **2**: Four values: Number of layers, number of inputs, number of outputs, and maximum layer size<br/>
     **3**: A sequence of values describing the network layer sizes. Begin with the input size, then the size of the first layer, second layer, and so on until the output layer size<br/>
