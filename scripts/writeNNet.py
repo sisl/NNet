@@ -20,20 +20,18 @@ def writeNNet(weights,biases,inputMins,inputMaxes,means,ranges,fileName):
         # First, we write the header lines:
         # The first line written is just a line of text
         # The second line gives the four values:
-        #     Number of hidden layers in the networks
-        #     Number of inputs to the networks
-        #     Number of outputs from the networks
+        #     Number of fully connected layers in the network
+        #     Number of inputs to the network
+        #     Number of outputs from the network
         #     Maximum size of any hidden layer
         # The third line gives the sizes of each layer, including the input and output layers
-        # The fourth line specifies if the network is "symmetric", in which the network was only 
-        #     trained on half of the state space and then the other half is mirrored. This
-        #     option was explored but not fruitfully, so this value is just set to false, 0
+        # The fourth line gives an outdated flag, so this can be ignored
         # The fifth line specifies the minimum values each input can take
         # The sixth line specifies the maximum values each input can take
         #     Inputs passed to the network are truncated to be between this range
-        # The seventh line gives the mean value of each input and of the outputs
-        # The eighth line gives the range of each input and of the outputs
-        #     These two lines are used to map raw inputs to the 0 mean, 1 range of the inputs and outputs
+        # The seventh line gives the mean value of each input and of all outputs
+        # The eighth line gives the range of each input and of all outputs
+        #     These two lines are used to map raw inputs to the 0 mean, unit range of the inputs and outputs
         #     used during training
         # The ninth line begins the network weights and biases
         ####################
@@ -51,17 +49,14 @@ def writeNNet(weights,biases,inputMins,inputMaxes,means,ranges,fileName):
                 maxLayerSize = len(b)
 
         # Write data to header 
-        line = "%d,%d,%d,%d,\n" % (numLayers,inputSize,outputSize,maxLayerSize)
-        f2.write(line)
-        line = "%d," % inputSize
-        f2.write(line)
+        f2.write("%d,%d,%d,%d,\n" % (numLayers,inputSize,outputSize,maxLayerSize) )
+        f2.write("%d," % inputSize )
         for b in biases:
-            line = "%d," % len(b)
-            f2.write(line)
+            f2.write("%d," % len(b) )
         f2.write("\n")
-        f2.write("0,\n") #Symmetric Boolean
+        f2.write("0,\n") #Unused Flag
 
-        # Write Min, Max, Mean, and Range of each of the inputs on outputs for normalization
+        # Write Min, Max, Mean, and Range of each of the inputs and outputs for normalization
         f2.write(','.join(str(inputMins[i])  for i in range(inputSize)) + ',\n') #Minimum Input Values
         f2.write(','.join(str(inputMaxes[i]) for i in range(inputSize)) + ',\n') #Maximum Input Values                
         f2.write(','.join(str(means[i])      for i in range(inputSize+1)) + ',\n') #Means for normalizations
