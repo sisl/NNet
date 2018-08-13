@@ -56,21 +56,21 @@ def writeNNet(params,keysW,keysb,inputMins,inputMaxes,means,ranges,fileName):
                 maxLayerSize = params[key].shape[1]
 
         # Write data to header 
-        str = "%d,%d,%d,%d,\n" % (numLayers,inputSize,outputSize,maxLayerSize)
-        f2.write(str)
-        str = "%d," % inputSize
-        f2.write(str)
+        line = "%d,%d,%d,%d,\n" % (numLayers,inputSize,outputSize,maxLayerSize)
+        f2.write(line)
+        line = "%d," % inputSize
+        f2.write(line)
         for key in keysW:
-            str = "%d," % params[key].shape[1]
-            f2.write(str)
+            line = "%d," % params[key].shape[1]
+            f2.write(line)
         f2.write("\n")
         f2.write("0,\n") #Symmetric Boolean
-        
+
         # Write Min, Max, Mean, and Range of each of the inputs on outputs for normalization
-        f2.write(','.join(str(inputMins[i])  for i in range(inputSize)) + '\n') #Minimum Input Values
-        f2.write(','.join(str(inputMaxes[i]) for i in range(inputSize)) + '\n') #Maximum Input Values                
-        f2.write(','.join(str(means[i])      for i in range(inputSize+1)) + '\n') #Means for normalizations
-        f2.write(','.join(str(ranges[i])     for i in range(inputSize+1)) + '\n') #Ranges for noramlizations
+        f2.write(','.join(str(inputMins[i])  for i in range(inputSize)) + ',\n') #Minimum Input Values
+        f2.write(','.join(str(inputMaxes[i]) for i in range(inputSize)) + ',\n') #Maximum Input Values                
+        f2.write(','.join(str(means[i])      for i in range(inputSize+1)) + ',\n') #Means for normalizations
+        f2.write(','.join(str(ranges[i])     for i in range(inputSize+1)) + ',\n') #Ranges for noramlizations
 
         ##################
         # Write weights and biases of neural network
@@ -83,20 +83,20 @@ def writeNNet(params,keysW,keysb,inputMins,inputMaxes,means,ranges,fileName):
             data = np.array(params[keysW[ii]]).T
             for i in range(len(data)):
                 for j in range(int(np.size(data)/len(data))):
-                    str = ""
+                    line = ""
                     if int(np.size(data)/len(data))==1:
-                        str = "%.5e," % data[i] #Five digits written. More can be used, but that requires more more space.
+                        line = "%.5e," % data[i] #Five digits written. More can be used, but that requires more more space.
                     else:
-                        str = "%.5e," % data[i][j]
-                    f2.write(str)
+                        line = "%.5e," % data[i][j]
+                    f2.write(line)
                 f2.write("\n")
             data = np.array(params[keysb[ii]]).T
             for i in range(len(data)):
                 for j in range(int(np.size(data)/len(data))):
-                    str = ""
+                    line = ""
                     if int(np.size(data)/len(data))==1:
-                        str = "%.5e," % data[i] #Five digits written. More can be used, but that requires more more space.
+                        line = "%.5e," % data[i] #Five digits written. More can be used, but that requires more more space.
                     else:
-                        str = "%.5e," % data[i][j]
-                    f2.write(str)
+                        line = "%.5e," % data[i][j]
+                    f2.write(line)
                 f2.write("\n")

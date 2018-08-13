@@ -2,15 +2,17 @@ import tensorflow as tf
 import numpy as np 
 import sys
 from tensorflow.python.framework import graph_util
+import os
+os.environ["CUDA_VISIBLE_DEVICES"] = "-1"
 
-def writePB(nnetFile, pbFile="", output_node_names = "y_out"):
+def nnet2pb(nnetFile, pbFile="", output_node_names = "y_out"):
     '''
     Read a .nnet file and create a frozen Tensorflow graph and save to a .pb file
     
     Inputs:
-        nnetFile: Required, .nnet file to convert to Tensorflow format
-        pbFile: Optional, name for the created .pb file
-        output_node_names: Optional, name of the final operation in the Tensorflow graph
+        nnetFile: (string) .nnet file to convert to Tensorflow format
+        pbFile: (string) Optional, name for the created .pb file
+        output_node_names: (string) Optional, name of the final operation in the Tensorflow graph
     '''
     
     # Default pb filename if none are specified
@@ -53,7 +55,7 @@ def writePB(nnetFile, pbFile="", output_node_names = "y_out"):
     j=0
     line = f.readline()
     record = line.split(',')
-    while line is not '':
+    while layer+1 < len(layerSizes):
         while i<layerSizes[layer+1]:
             while record[j]!="\n":
                 weights[layer][j,i] = float(record[j])
@@ -73,12 +75,14 @@ def writePB(nnetFile, pbFile="", output_node_names = "y_out"):
         layer+=1
         i=0
         j=0
+        if layer==7:
+            print(record)
+            print(line)
     f.close()
     
     # Reset tensorflow and load a session using only CPUs
     tf.reset_default_graph()
-    config = tf.ConfigProto(device_count = {'GPU': 0})
-    sess = tf.Session(config=config)
+    sess = tf.Session()
 
     # Define model and assign values to tensors
     currentTensor = tf.placeholder(tf.float32, [None, inputSize],name='input')
@@ -128,6 +132,6 @@ if len(sys.argv)>1:
         pbFile = sys.argv[2]
     if len(sys.argv)>3:
         output_node_names = argv[3]
-    writePB(nnetFile,pbFile,output_node_names)
+    nnet2pb(nnetFile,pbFile,output_node_names)
 else:
     print("Need to specify which .nnet file to convert to Tensorflow frozen graph!")
