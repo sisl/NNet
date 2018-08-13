@@ -5,7 +5,7 @@ The .nnet file format for fully connected ReLU networks was originially created 
 
 This repository contains documentation for the .nnet format as well as example scripts to read/write .nnet files. The nnet folder contains example neural network files, the scripts folder contains python scripts to generate the .nnet files from Tensorflow/Keras as well as to generate a Tensorflow frozen model from a .nnet file, and the folder folder contains Python, Julia, and C++ examples for reading and evaluating .nnet networks.
 
-### File Format of .nnet
+### File format of .nnet
 The file begins with a header line, some information about the network architecture, normalization information, and then model parameters. Line by line:<br/><br/>
     **1**: Header text. This can be any number of lines so long as they begin with "//"<br/>
     **2**: Four values: Number of layers, number of inputs, number of outputs, and maximum layer size<br/>
@@ -28,5 +28,3 @@ The pb2nnet.py used the writeNNet function to show how a frozen Tensorflow model
 
 ### Loading and evaluating .nnet files
 In the readNNet folder, there are three subfolders for C++, Julia, and Python examples. Each subfolder contains a nnet.* file that contains functions for loading the network from a .nnet file and then evaluating a set of inputs given the loaded model. There are examples in each folder to demonstrate how the functions can be used.
-
-
