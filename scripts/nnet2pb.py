@@ -75,9 +75,6 @@ def nnet2pb(nnetFile, pbFile="", output_node_names = "y_out"):
         layer+=1
         i=0
         j=0
-        if layer==7:
-            print(record)
-            print(line)
     f.close()
     
     # Reset tensorflow and load a session using only CPUs

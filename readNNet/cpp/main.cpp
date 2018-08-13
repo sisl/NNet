@@ -7,7 +7,7 @@
 void test_network(void)
 {
     // Build network and time how long build takes
-    const char* filename = "../../TestNetwork.nnet";
+    const char* filename = "../../nnet/TestNetwork.nnet";
     clock_t create_network = clock();
     void *network = load_network(filename);
     clock_t t_build_network = clock() - create_network;

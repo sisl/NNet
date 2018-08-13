@@ -1,5 +1,5 @@
 from nnet import *
-nnet = NNet('../../TestNetwork.nnet')
+nnet = NNet('../../nnet/TestNetwork.nnet')
 print("Num Inputs: %d"%nnet.num_inputs())
 print("Num Outputs: %d"%nnet.num_outputs())
 print("One evaluation:")
