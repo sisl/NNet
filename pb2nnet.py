@@ -6,16 +6,37 @@ os.environ["CUDA_VISIBLE_DEVICES"] = "-1"
 import tensorflow as tf
 from writeNNet import writeNNet
 
-def processGraph(op,weightList, biasList):
+def processGraph(op,input_op, foundInputFlag, weights, biases):
+    '''
+    Recursively search the graph and add popular the weight and bias lists
+    
+    Args:
+        op: (tf.op) Current tensorflow operation in search
+        input_op: (tf.op) Tensorflow operation that we want to be the network input
+        foundInputFlag: (bool) Flag turned to true when the input operation is found
+        weights: List of weights in network
+        biases: List of biases in network
+    '''
+    
     if op.node_def.op=='Const':
+        # If constant, extract values and add to weight or bias list depending on shape
         param = tensor_util.MakeNdarray(op.node_def.attr['value'].tensor)
         if len(param.shape)>1:
-            weightList+=[param]
+            weights+=[param]
         else:
-            biasList+=[param]
+            biases+=[param]
+            
+    # Search the inputs to this operation as well
     input_ops = [i.op for i in op.inputs]
     for i in input_ops:
-        processGraph(i,weightList,biasList)
+        
+        # If the operation name is not the given input_op name, recurse. 
+        # Otherwise, we have found the input operation
+        if not i.name == input_op.name:
+            foundInputFlag = processGraph(i, input_op, foundInputFlag, weights, biases)
+        else:
+            foundInputFlag = True
+    return foundInputFlag
 
         
 def pb2nnet(pbFile, inputMins, inputMaxes, means, ranges, nnetFile="", inputName="", outputName="", savedModel=False, savedModelTags=[]):
@@ -73,21 +94,17 @@ def pb2nnet(pbFile, inputMins, inputMaxes, means, ranges, nnetFile="", inputName
     else: # Assume that the last operation is the output
         outputOp = sess.graph.get_operations()[-1]
     
-    weightList = []
-    biasList = []
-    processGraph(outputOp,weightList,biasList)
-    
-    params = {}
-    keysW = []
-    keysb = []
-    for i in range(len(weightList)):
-        keyW = "w%d"%i
-        keyb = "b%d"%i
-        params[keyW] = weightList[i]
-        params[keyb] = biasList[i]
-        keysW += [keyW]
-        keysb += [keyb]
-    writeNNet(params,keysW,keysb,inputMins,inputMaxes,means,ranges,nnetFile)
+    # Recursively search for weights and bias parameters and add them to list
+    # Search until the inputOp is found
+    # If inputOp is not found, than the operation does not exist in the graph or does not lead to the output operation
+    weights = []
+    biases = []
+    foundInputFlag = False
+    foundInputFlag = processGraph(outputOp, inputOp, foundInputFlag, weights, biases)
+    if foundInputFlag:
+        writeNNet(weights,biases,inputMins,inputMaxes,means,ranges,nnetFile)
+    else:
+        print("Could not find the given input in graph: %s"%inputOp.name)
     
 ## Script showing how to run pb2nnet
 # Min and max values used to bound the inputs

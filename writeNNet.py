@@ -1,22 +1,17 @@
 import numpy as np
 
-def writeNNet(params,keysW,keysb,inputMins,inputMaxes,means,ranges,fileName):
+def writeNNet(weights,biases,inputMins,inputMaxes,means,ranges,fileName):
     '''
     Write network data to the .nnet file format
-    
-    params: dictionary of network variables. This can be extracted from tensorflow with
-        params = sess.run(variable_dict)
-        where variable_dict is a dictionary of network variables
-    keysW: List of keys corresponding to weight matrices in the params dictionary
-    keysb: List of keys corresponding to bias vectors in the params dictionary
+
+    weights: List of weight matrices in the network order 
+    biases: List of bias vectors in the network order
     inputMins: List of minimum values for each input
     inputMaxes: List of maximum values for each input
     means: List of mean values for each input and a mean value for all outputs. Used to normalize inputs/outputs
     ranges: List of range values for each input and a range value for all outputs. Used to normalize inputs/outputs
     fileName: File where the network will be written
     '''
-
-   
     
     #Open the file we wish to write
     with open(fileName,'w') as f2:
@@ -45,23 +40,23 @@ def writeNNet(params,keysW,keysb,inputMins,inputMaxes,means,ranges,fileName):
         f2.write("// Neural Network File Format by Kyle Julian, Stanford 2016\n")
 
         #Extract the necessary information and write the header information
-        numLayers = len(keysW)
-        inputSize = params[keysW[0]].shape[0]
-        outputSize = params[keysb[-1]].shape[0]
+        numLayers = len(weights)
+        inputSize = weights[0].shape[0]
+        outputSize = len(biases[-1])
         maxLayerSize = inputSize
         
         # Find maximum size of any hidden layer
-        for key in keysW:
-            if params[key].shape[1]>maxLayerSize :
-                maxLayerSize = params[key].shape[1]
+        for b in biases:
+            if len(b)>maxLayerSize :
+                maxLayerSize = len(b)
 
         # Write data to header 
         line = "%d,%d,%d,%d,\n" % (numLayers,inputSize,outputSize,maxLayerSize)
         f2.write(line)
         line = "%d," % inputSize
         f2.write(line)
-        for key in keysW:
-            line = "%d," % params[key].shape[1]
+        for b in biases:
+            line = "%d," % len(b)
             f2.write(line)
         f2.write("\n")
         f2.write("0,\n") #Symmetric Boolean
@@ -79,24 +74,11 @@ def writeNNet(params,keysW,keysb,inputMins,inputMaxes,means,ranges,fileName):
         # The pattern is repeated by next writing the weights from the first hidden layer to the second hidden layer,
         # followed by the biases of the second hidden layer.
         ##################
-        for ii in range(len(keysW)):
-            data = np.array(params[keysW[ii]]).T
-            for i in range(len(data)):
-                for j in range(int(np.size(data)/len(data))):
-                    line = ""
-                    if int(np.size(data)/len(data))==1:
-                        line = "%.5e," % data[i] #Five digits written. More can be used, but that requires more more space.
-                    else:
-                        line = "%.5e," % data[i][j]
-                    f2.write(line)
+        for w,b in zip(weights,biases):
+            for j in range(w.shape[1]):
+                for i in range(w.shape[0]):
+                    f2.write("%.5e," % w[i][j]) #Five digits written. More can be used, but that requires more more space.
                 f2.write("\n")
-            data = np.array(params[keysb[ii]]).T
-            for i in range(len(data)):
-                for j in range(int(np.size(data)/len(data))):
-                    line = ""
-                    if int(np.size(data)/len(data))==1:
-                        line = "%.5e," % data[i] #Five digits written. More can be used, but that requires more more space.
-                    else:
-                        line = "%.5e," % data[i][j]
-                    f2.write(line)
-                f2.write("\n")
+                
+            for i in range(len(b)):
+                f2.write("%.5e,\n" % b[i]) #Five digits written. More can be used, but that requires more more space.
