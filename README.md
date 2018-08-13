@@ -18,4 +18,4 @@ The file begins with a header line, some information about the network architect
     **9+**: Begin defining the weight matrix for the first layer, followed by the bias vector. The weights and biases for the second layer follow after, until the weights and biases for the output layer are defined.<br/>
 
 ### Writing .nnet files
-The file writeNNet.py conatins a python method for writing neural network data from Keras or Tensorflow to a .nnet file. The main method, writeNNet(), takes a dictionary
+The file writeNNet.py conatins a python method for writing neural network data from Keras or Tensorflow to a .nnet file. The main method, writeNNet(), a list of weights, biases, and information needed to write the header including minimum input values, maximum input values, mean of inputs/ouput, and range of inputs/output.
