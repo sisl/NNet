@@ -22,8 +22,7 @@ def asymMSE(y_true, y_pred):
     d = d_sub**2                                   # 1   times error of suboptimal actions squared
     l = T.switch(d_sub<0,c,d) + T.switch(d_opt<0,a,b) #This chooses which errors to use depending on the sign of the errors
                                                       #If true, use the steeper penalty. If false, use the milder penalty
-    cost1 = l
-    return cost1
+    return l
 model = load_model(kerasFile,custom_objects = {'asymMSE':asymMSE})
 
 # Get a list of the model weights
