@@ -1,6 +1,23 @@
 export NNet, evaluate_network, evaluate_network_multiple, num_inputs, num_outputs
 
-# Neural network object that represents fully connected relu networks defined in .nnet files
+"""
+Custom type that represents a fully connected ReLU network from a .nnet file
+
+Args:
+    file (string): A .nnet file to load
+
+Attributes:
+    numLayers (int): Number of weight matrices or bias vectors in neural network
+    layerSizes (list of ints): Size of input layer, hidden layers, and output layer
+    inputSize (int): Size of input
+    outputSize (int): Size of output
+    mins (list of floats): Minimum values of inputs
+    maxes (list of floats): Maximum values of inputs
+    means (list of floats): Means of inputs and mean of outputs
+    ranges (list of floats): Ranges of inputs and range of outputs
+    weights (list of arrays): Weight matrices in network
+    biases (list of arrays): Bias vectors in network
+"""
 type NNet
     weights::Array{Any,1}
     biases::Array{Any,1}
@@ -111,7 +128,16 @@ type NNet
     end
 end
 
-# Evaluates one set of inputs
+"""
+Evaluate network using given inputs
+
+Args:
+    nnet (NNet): Neural network to evaluate
+    inputs (array): Network inputs to be evaluated
+
+Returns:
+    (array): Network output
+"""
 function evaluate_network(nnet::NNet,input::Array{Float64,1})
     numLayers = nnet.numLayers
     inputSize = nnet.inputSize
@@ -145,8 +171,16 @@ function evaluate_network(nnet::NNet,input::Array{Float64,1})
     return outputs
 end
 
-# Evaluates multiple inputs at once. Each set of inputs should be a column in the input array
-# Returns a column of output values for each input set
+"""
+Evaluate network using multiple sets of inputs
+
+Args:
+    nnet (NNet): Neural network to evaluate
+    inputs (array): Network inputs to be evaluated
+
+Returns:
+    (array): Network outputs for each set of inputs
+"""
 function evaluate_network_multiple(nnet::NNet,input::Array{Float64,2})
     numLayers = nnet.numLayers
     inputSize = nnet.inputSize
@@ -184,10 +218,12 @@ function evaluate_network_multiple(nnet::NNet,input::Array{Float64,2})
     return outputs
 end
 
+""" Get number of inputs to network"""
 function num_inputs(nnet::NNet)
     return nnet.inputSize
 end
 
+""" Get number of outputs from network"""
 function num_outputs(nnet::NNet)
     return nnet.outputSize
 end
