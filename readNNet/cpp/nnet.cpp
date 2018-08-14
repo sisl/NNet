@@ -1,10 +1,3 @@
-/*********************                                                        */
-/*! \file nnet.cpp
- ** \verbatim
- ** Top contributors (to current version):
- **   Kyle Julian\endverbatim
- **/
-
 #include <cstdio>
 #include <cstring>
 #include <cstdlib>
