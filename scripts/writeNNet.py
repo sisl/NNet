@@ -4,13 +4,14 @@ def writeNNet(weights,biases,inputMins,inputMaxes,means,ranges,fileName):
     '''
     Write network data to the .nnet file format
 
-    weights: List of weight matrices in the network order 
-    biases: List of bias vectors in the network order
-    inputMins: List of minimum values for each input
-    inputMaxes: List of maximum values for each input
-    means: List of mean values for each input and a mean value for all outputs. Used to normalize inputs/outputs
-    ranges: List of range values for each input and a range value for all outputs. Used to normalize inputs/outputs
-    fileName: File where the network will be written
+    Args:
+        weights (list): Weight matrices in the network order 
+        biases (list): Bias vectors in the network order
+        inputMins (list): Minimum values for each input
+        inputMaxes (list): Maximum values for each input
+        means (list): Mean values for each input and a mean value for all outputs. Used to normalize inputs/outputs
+        ranges (list): Range values for each input and a range value for all outputs. Used to normalize inputs/outputs
+        fileName (str): File where the network will be written
     '''
     
     #Open the file we wish to write
