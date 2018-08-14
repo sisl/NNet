@@ -1,7 +1,7 @@
 ## NNet Repository
 
 ### Introduction
-The .nnet file format for fully connected ReLU networks was originially created to define aircraft collision avoidance neural networks in a human-readable text document. Since then it was incorporated into the Reluplex repository, and an input parser was created to read the .nnet files.
+The .nnet file format for fully connected ReLU networks was originially created in 2016 to define aircraft collision avoidance neural networks in a human-readable text document. Since then it was incorporated into the Reluplex repository and used to define benchmark neural networks.
 
 This repository contains documentation for the .nnet format as well as example scripts to read/write .nnet files. The nnet folder contains example neural network files, the scripts folder contains python scripts to generate the .nnet files from Tensorflow/Keras as well as to generate a Tensorflow frozen model from a .nnet file, and the folder folder contains Python, Julia, and C++ examples for reading and evaluating .nnet networks.
 
@@ -28,3 +28,6 @@ The pb2nnet.py used the writeNNet function to show how a frozen Tensorflow model
 
 ### Loading and evaluating .nnet files
 In the readNNet folder, there are three subfolders for C++, Julia, and Python examples. Each subfolder contains a nnet.* file that contains functions for loading the network from a .nnet file and then evaluating a set of inputs given the loaded model. There are examples in each folder to demonstrate how the functions can be used.
+
+## License
+This code is licensed under the MIT license. See LICENSE for details.
