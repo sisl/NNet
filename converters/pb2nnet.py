@@ -4,11 +4,11 @@ from tensorflow.python.framework import graph_util
 import os
 os.environ["CUDA_VISIBLE_DEVICES"] = "-1"
 import tensorflow as tf
-from writeNNet import writeNNet
+from NNet.utils.writeNNet import writeNNet
 
 def processGraph(op,input_op, foundInputFlag, weights, biases):
     '''
-    Recursively search the graph and add popular the weight and bias lists
+    Recursively search the graph and populate the weight and bias lists
     
     Args:
         op: (tf.op) Current tensorflow operation in search
@@ -39,9 +39,9 @@ def processGraph(op,input_op, foundInputFlag, weights, biases):
     return foundInputFlag
 
         
-def pb2nnet(pbFile, inputMins, inputMaxes, means, ranges, nnetFile="", inputName="", outputName="", savedModel=False, savedModelTags=[]):
+def pb2nnet(pbFile, inputMins=None, inputMaxes=None, means=None, ranges=None, nnetFile="", inputName="", outputName="", savedModel=False, savedModelTags=[]):
     '''
-    Constructs a MarabouNetworkTF object from a frozen Tensorflow protobuf or SavedModel
+    Write a .nnet file from a frozen Tensorflow protobuf or SavedModel
     Args:
         pbFile: (string) If savedModel is false, path to the frozen graph .pb file.
                            If savedModel is true, path to SavedModel folder, which
@@ -102,21 +102,25 @@ def pb2nnet(pbFile, inputMins, inputMaxes, means, ranges, nnetFile="", inputName
     foundInputFlag = False
     foundInputFlag = processGraph(outputOp, inputOp, foundInputFlag, weights, biases)
     if foundInputFlag:
+        
+        # Default values for input bounds and normalization constants
+        if inputMins is None: inputMins = inputSize*[np.finfo(np.float32).min]
+        if inputMaxes is None: inputMaxes = inputSize*[np.finfo(np.float32).max]
+        if means is None: means = (inputSize+1)*[0.0]
+        if ranges is None: ranges = (inputSize+1)*[1.0]
+            
+        # Write NNet file
         writeNNet(weights,biases,inputMins,inputMaxes,means,ranges,nnetFile)
     else:
         print("Could not find the given input in graph: %s"%inputOp.name)
-    
-## Script showing how to run pb2nnet
-# Min and max values used to bound the inputs
-inputMins  = [0.0,-3.141593,-3.141593,100.0,0.0]
-inputMaxes = [60760.0,3.141593,3.141593,1200.0,1200.0]
 
-# Mean and range values for normalizing the inputs and outputs. All outputs are normalized with the same value
-means  = [1.9791091e+04,0.0,0.0,650.0,600.0,7.5188840201005975]
-ranges = [60261.0,6.28318530718,6.28318530718,1100.0,1200.0,373.94992]
-
-# Tensorflow pb file to convert to .nnet file
-pbFile = '../nnet/TestNetwork2.pb'
-
-# Convert the file
-pb2nnet(pbFile, inputMins, inputMaxes, means, ranges)
+if __name__=='__main__':
+    # Read user inputs and run pb2nnet function
+    # If non-default values of input bounds and normalization constants are needed, this function should be run from a script
+    # instead of the command line
+    if len(sys.argv)>1:
+        print("WARNING: Using the default values of input bounds and normalization constants")
+        pbFile = sys.argv[1]
+        pb2nnet(pbFile)
+    else:
+        print("Need to specify which Tensorflow .pb file to convert to .nnet!")

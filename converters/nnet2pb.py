@@ -4,6 +4,7 @@ import sys
 from tensorflow.python.framework import graph_util
 import os
 os.environ["CUDA_VISIBLE_DEVICES"] = "-1"
+from NNet.utils.readNNet import readNNet
 
 def nnet2pb(nnetFile, pbFile="", output_node_names = "y_out"):
     '''
@@ -14,68 +15,12 @@ def nnet2pb(nnetFile, pbFile="", output_node_names = "y_out"):
         pbFile: (string) Optional, name for the created .pb file
         output_node_names: (string) Optional, name of the final operation in the Tensorflow graph
     '''
+    weights, biases = readNNet(nnetFile)
+    inputSize = weights[0].shape[0]
     
     # Default pb filename if none are specified
     if pbFile=="":
         pbFile = nnetFile[:-4]+'pb'
-        
-    # Open NNet file
-    f = open(nnetFile,'r')
-    
-    # Skip header lines
-    line = f.readline()
-    while line[:2]=="//":
-        line = f.readline()
-        
-    # Extract information about network architecture
-    record = line.split(',')
-    numLayers   = int(record[0])
-    inputSize   = int(record[1])
-
-    line = f.readline()
-    record = line.split(',')
-    layerSizes = np.zeros(numLayers+1,'int')
-    for i in range(numLayers+1):
-        layerSizes[i]=int(record[i])
-
-    # Skip the normalization information
-    f.readline()
-    line = f.readline()
-    line = f.readline()
-    line = f.readline()
-    line = f.readline()
-
-    # Initialize list of weights and biases
-    weights = [np.zeros((layerSizes[i],layerSizes[i+1])) for i in range(numLayers)]
-    biases  = [np.zeros(layerSizes[i+1]) for i in range(numLayers)]
-
-    # Read remainder of file and place each value in the correct spot in a weight matrix or bias vector
-    layer=0
-    i=0
-    j=0
-    line = f.readline()
-    record = line.split(',')
-    while layer+1 < len(layerSizes):
-        while i<layerSizes[layer+1]:
-            while record[j]!="\n":
-                weights[layer][j,i] = float(record[j])
-                j+=1
-            j=0
-            i+=1
-            line = f.readline()
-            record = line.split(',')
-
-        i=0
-        while i<layerSizes[layer+1]:
-            biases[layer][i] = float(record[0])
-            i+=1
-            line = f.readline()
-            record = line.split(',')
-
-        layer+=1
-        i=0
-        j=0
-    f.close()
     
     # Reset tensorflow and load a session using only CPUs
     tf.reset_default_graph()
@@ -120,15 +65,16 @@ def freeze_graph(sess, output_graph_name, output_node_names):
     with tf.gfile.GFile(output_graph_name, "w") as f:
         f.write(output_graph_def.SerializeToString())
   
-# Read user inputs and run writePB function
-if len(sys.argv)>1:
-    nnetFile = sys.argv[1]
-    pbFile = ""
-    output_node_names = "y_out"
-    if len(sys.argv)>2:
-        pbFile = sys.argv[2]
-    if len(sys.argv)>3:
-        output_node_names = argv[3]
-    nnet2pb(nnetFile,pbFile,output_node_names)
-else:
-    print("Need to specify which .nnet file to convert to Tensorflow frozen graph!")
+if __name__=='__main__':
+    # Read user inputs and run writePB function
+    if len(sys.argv)>1:
+        nnetFile = sys.argv[1]
+        pbFile = ""
+        output_node_names = "y_out"
+        if len(sys.argv)>2:
+            pbFile = sys.argv[2]
+        if len(sys.argv)>3:
+            output_node_names = argv[3]
+        nnet2pb(nnetFile,pbFile,output_node_names)
+    else:
+        print("Need to specify which .nnet file to convert to Tensorflow frozen graph!")

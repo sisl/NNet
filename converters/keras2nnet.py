@@ -2,7 +2,7 @@ import numpy as np
 import h5py
 from keras.models import load_model
 import theano.tensor as T
-from writeNNet import writeNNet
+from NNet.utils.writeNNet import writeNNet
 
 
 # Load Keras network saved using model.save()
