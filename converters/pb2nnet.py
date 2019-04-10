@@ -11,11 +11,14 @@ def processGraph(op,input_op, foundInputFlag, weights, biases):
     Recursively search the graph and populate the weight and bias lists
     
     Args:
-        op: (tf.op) Current tensorflow operation in search
-        input_op: (tf.op) Tensorflow operation that we want to be the network input
-        foundInputFlag: (bool) Flag turned to true when the input operation is found
-        weights: List of weights in network
-        biases: List of biases in network
+        op (tf.op): Current tensorflow operation in search
+        input_op (tf.op): Tensorflow operation that we want to be the network input
+        foundInputFlag (bool): Flag turned to true when the input operation is found
+        weights (list): List of weights in network
+        biases (list): List of biases in network
+        
+    Returns:
+        (bool): Updated foundInputFlag
     '''
     
     if op.node_def.op=='Const':
@@ -42,18 +45,19 @@ def processGraph(op,input_op, foundInputFlag, weights, biases):
 def pb2nnet(pbFile, inputMins=None, inputMaxes=None, means=None, ranges=None, nnetFile="", inputName="", outputName="", savedModel=False, savedModelTags=[]):
     '''
     Write a .nnet file from a frozen Tensorflow protobuf or SavedModel
+
     Args:
-        pbFile: (string) If savedModel is false, path to the frozen graph .pb file.
-                           If savedModel is true, path to SavedModel folder, which
-                           contains .pb file and variables subdirectory.
-        inputMins: (list) Minimum values for each neural network input.
-        inputMaxes: (list) Maximum values for each neural network output.
-        means: (list) Mean value for each input and value for mean of all outputs, used for normalization
-        ranges: (list) Range value for each input and value for range of all outputs, used for normalization
-        inputName: (string) optional, name of operation corresponding to input.
-        outputName: (string) optional, name of operation corresponding to output.
-        savedModel: (bool) If false, load frozen graph. If true, load SavedModel object.
-        savedModelTags: (list of strings) If loading a SavedModel, the user must specify tags used.
+        pbFile (str): If savedModel is false, path to the frozen graph .pb file.
+                      If savedModel is true, path to SavedModel folder, which
+                      contains .pb file and variables subdirectory.
+        inputMins (list): Minimum values for each neural network input.
+        inputMaxes (list): Maximum values for each neural network output.
+        means (list): Mean value for each input and value for mean of all outputs, used for normalization
+        ranges (list): Range value for each input and value for range of all outputs, used for normalization
+        inputName (str, optional): Name of operation corresponding to input. Default: ""
+        outputName (str, optional) Name of operation corresponding to output. Default: ""
+        savedModel (bool, optional) If false, load frozen graph. If true, load SavedModel object. Default: False
+        savedModelTags (list, optional) If loading a SavedModel, the user must specify tags used. Default: []
     '''
     
     if nnetFile=="":

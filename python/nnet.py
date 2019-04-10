@@ -2,7 +2,22 @@ import numpy as np
 
 class NNet():
     """
-    Class that represents NNet
+    Class that represents a fully connected ReLU network from a .nnet file
+    
+    Args:
+        filename (str): A .nnet file to load
+    
+    Attributes:
+        numLayers (int): Number of weight matrices or bias vectors in neural network
+        layerSizes (list of ints): Size of input layer, hidden layers, and output layer
+        inputSize (int): Size of input
+        outputSize (int): Size of output
+        mins (list of floats): Minimum values of inputs
+        maxes (list of floats): Maximum values of inputs
+        means (list of floats): Means of inputs and mean of outputs
+        ranges (list of floats): Ranges of inputs and range of outputs
+        weights (list of numpy arrays): Weight matrices in network
+        biases (list of numpy arrays): Bias vectors in network
     """
     def __init__ (self, filename):
         with open(filename) as f:
@@ -66,6 +81,15 @@ class NNet():
             self.biases = biases
             
     def evaluate_network(self, inputs):
+        '''
+        Evaluate network using given inputs
+        
+        Args:
+            inputs (numpy array of floats): Network inputs to be evaluated
+            
+        Returns:
+            (numpy array of floats): Network output
+        '''
         numLayers = self.numLayers
         inputSize = self.inputSize
         outputSize = self.outputSize
@@ -92,10 +116,17 @@ class NNet():
             outputs[i] = outputs[i]*self.ranges[-1]+self.means[-1]
         return outputs
 
-    # Evaluates multiple inputs at once. Each set of inputs should be list of input lists, 
-    # or a 2D numpy array with sets of inputs as rows
-    # Returns a column of output values for each input set
     def evaluate_network_multiple(self,inputs):
+        '''
+        Evaluate network using multiple sets of inputs
+        
+        Args:
+            inputs (numpy array of floats): Array of network inputs to be evaluated.
+            
+        Returns:
+            (numpy array of floats): Network outputs for each set of inputs
+        '''
+        
         numLayers = self.numLayers
         inputSize = self.inputSize
         outputSize = self.outputSize
@@ -127,7 +158,9 @@ class NNet():
         return outputs.T
 
     def num_inputs(self):
+        ''' Get network input size'''
         return self.inputSize
 
     def num_outputs(self):
+        ''' Get network output size'''
         return self.outputSize

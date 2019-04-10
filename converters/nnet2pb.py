@@ -10,10 +10,10 @@ def nnet2pb(nnetFile, pbFile="", output_node_names = "y_out"):
     '''
     Read a .nnet file and create a frozen Tensorflow graph and save to a .pb file
     
-    Inputs:
-        nnetFile: (string) .nnet file to convert to Tensorflow format
-        pbFile: (string) Optional, name for the created .pb file
-        output_node_names: (string) Optional, name of the final operation in the Tensorflow graph
+    Args:
+        nnetFile (str): A .nnet file to convert to Tensorflow format
+        pbFile (str, optional): Name for the created .pb file. Default: ""
+        output_node_names (str, optional): Name of the final operation in the Tensorflow graph. Default: "y_out"
     '''
     weights, biases = readNNet(nnetFile)
     inputSize = weights[0].shape[0]
@@ -48,10 +48,11 @@ def nnet2pb(nnetFile, pbFile="", output_node_names = "y_out"):
 def freeze_graph(sess, output_graph_name, output_node_names):
     '''
     Given a session with a graph loaded, save only the variables needed for evaluation to a .pb file
-    Inputs:
-        sess: Tensorflow session where graph is defined
-        output_graph_name: Name of file for writing frozen graph
-        output_node_names: Name of the output operation in the graph, comma separates if there are multiple output operations
+    
+    Args:
+        sess (tf.session): Tensorflow session where graph is defined
+        output_graph_name (str): Name of file for writing frozen graph
+        output_node_names (str): Name of the output operation in the graph, comma separated if there are multiple output operations
     '''
     
     input_graph_def = tf.get_default_graph().as_graph_def()
