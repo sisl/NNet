@@ -1,6 +1,6 @@
 include("nnet.jl")
 
-nnet = NNet("../../nnet/TestNetwork.nnet")
+nnet = NNet("../nnet/TestNetwork.nnet")
 println("Num Inputs: "*string(num_inputs(nnet)))
 println("Num Outputs: "*string(num_outputs(nnet)))
 println("One evaluation:")
