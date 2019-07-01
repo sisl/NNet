@@ -24,7 +24,7 @@ The minimum/maximum input values are used to define the range of input values se
 The mean/range values are the values used to normalize the network training data before training the network. The normalization substracts the mean and divides by the range, giving a distribution that is zero mean and unit range. Therefore, new inputs to the network should be normalized as well, so there is a mean/range value for every input to the network. There is also an additional mean/range value for the network outputs, but just one value for all outputs. The raw network outputs can be re-scaled by multiplying by the range and adding the mean.
 
 ### Writing .nnet files
-In the utils folder, the file writeNNet.py conatins a python method for writing neural network data to a .nnet file. The main method, writeNNet, requires a list of weights, biases, minimum input values, maximum input values, mean of inputs/ouput, and range of inputs/output, and a filename to write the neural network.
+In the utils folder, the file writeNNet.py contains a python method for writing neural network data to a .nnet file. The main method, writeNNet, requires a list of weights, biases, minimum input values, maximum input values, mean of inputs/ouput, and range of inputs/output, and a filename to write the neural network.
 
 ### Loading and evaluating .nnet files
 There are three folders for C++, Julia, and Python examples. Each subfolder contains a nnet.* file that contains functions for loading the network from a .nnet file and then evaluating a set of inputs given the loaded model. There are examples in each folder to demonstrate how the functions can be used.
