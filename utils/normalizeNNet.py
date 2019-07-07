@@ -1,8 +1,8 @@
 import numpy as np
-from readNNet import readNNet
-from writeNNet import writeNNet
+from NNet.utils.readNNet import readNNet
+from NNet.utils.writeNNet import writeNNet
 
-def normalizeNNet(readNNetFile, writeNNetFile):
+def normalizeNNet(readNNetFile, writeNNetFile=None):
     weights, biases, inputMins, inputMaxes, means, ranges = readNNet(readNNetFile,withNorm=True)
     
     numInputs = weights[0].shape[0]
@@ -21,7 +21,10 @@ def normalizeNNet(readNNetFile, writeNNetFile):
     means = np.zeros(numInputs+1)
     ranges = np.ones(numInputs+1)
     
-    writeNNet(weights,biases,inputMins,inputMaxes,means,ranges,writeNNetFile)
+    if writeNNetFile is not None:
+        writeNNet(weights,biases,inputMins,inputMaxes,means,ranges,writeNNetFile)
+        return None
+    return weights, biases
    
 if __name__=='__main__':
     readNNetFile = '../nnet/TestNetwork.nnet'

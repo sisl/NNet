@@ -3,16 +3,23 @@ import sys
 import onnx
 from onnx import helper, numpy_helper, TensorProto
 from NNet.utils.readNNet import readNNet
+from NNet.utils.normalizeNNet import normalizeNNet
 
-def nnet2onnx(nnetFile, onnxFile="", outputVar = "y_out", inputVar="X"):
+def nnet2onnx(nnetFile, onnxFile="", outputVar = "y_out", inputVar="X", normalizeNetwork=False):
     '''
     Convert a .nnet file to onnx format
     Args:
         nnetFile: (string) .nnet file to convert to onnx
         onnxFile: (string) Optional, name for the created .onnx file
         outputName: (string) Optional, name of the output variable in onnx
+        normalizeNetwork: (bool) If true, adapt the network weights and biases so that 
+                                 networks and inputs do not need to be normalized. Default is False.
     '''
-    weights, biases = readNNet(nnetFile)
+    if normalizeNetwork:
+        weights, biases = normalizeNNet(nnetFile)
+    else:
+        weights, biases = readNNet(nnetFile)
+        
     inputSize = weights[0].shape[0]
     outputSize = weights[-1].shape[1]
     numLayers = len(weights)
