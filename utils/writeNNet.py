@@ -40,7 +40,7 @@ def writeNNet(weights,biases,inputMins,inputMaxes,means,ranges,fileName):
 
         #Extract the necessary information and write the header information
         numLayers = len(weights)
-        inputSize = weights[0].shape[0]
+        inputSize = weights[0].shape[1]
         outputSize = len(biases[-1])
         maxLayerSize = inputSize
         
@@ -71,8 +71,8 @@ def writeNNet(weights,biases,inputMins,inputMaxes,means,ranges,fileName):
         # followed by the biases of the second hidden layer.
         ##################
         for w,b in zip(weights,biases):
-            for j in range(w.shape[1]):
-                for i in range(w.shape[0]):
+            for i in range(w.shape[0]):
+                for j in range(w.shape[1]):
                     f2.write("%.5e," % w[i][j]) #Five digits written. More can be used, but that requires more more space.
                 f2.write("\n")
                 

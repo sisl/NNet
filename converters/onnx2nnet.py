@@ -57,7 +57,7 @@ def onnx2nnet(onnxFile, inputMins=None, inputMaxes=None, means=None, ranges=None
                 weightName = node.input[weightIndex]
                 
                 # Extract the value of the weight matrix from the initializers
-                weights+= [numpy_helper.to_array(inits).T for inits in graph.initializer if inits.name==weightName]
+                weights+= [numpy_helper.to_array(inits) for inits in graph.initializer if inits.name==weightName]
                 
                 # Update inputName to be the output of this node
                 inputName = node.output[0]

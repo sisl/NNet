@@ -50,36 +50,28 @@ def readNNet(nnetFile, withNorm=False):
     line = f.readline()
     ranges = [float(x) for x in line.strip().split(",")[:-1]]
 
-    # Initialize list of weights and biases
-    weights = [np.zeros((layerSizes[i],layerSizes[i+1])) for i in range(numLayers)]
-    biases  = [np.zeros(layerSizes[i+1]) for i in range(numLayers)]
+    # Read weights and biases
+    weights=[]
+    biases = []
+    for layernum in range(numLayers):
 
-    # Read remainder of file and place each value in the correct spot in a weight matrix or bias vector
-    layer=0
-    i=0
-    j=0
-    line = f.readline()
-    record = line.split(',')
-    while layer+1 < len(layerSizes):
-        while i<layerSizes[layer+1]:
-            while record[j]!="\n":
-                weights[layer][j,i] = float(record[j])
-                j+=1
-            j=0
-            i+=1
-            line = f.readline()
-            record = line.split(',')
+        previousLayerSize = layerSizes[layernum]
+        currentLayerSize = layerSizes[layernum+1]
+        weights.append([])
+        biases.append([])
+        weights[layernum] = np.zeros((currentLayerSize,previousLayerSize))
+        for i in range(currentLayerSize):
+            line=f.readline()
+            aux = [float(x) for x in line.strip().split(",")[:-1]]
+            for j in range(previousLayerSize):
+                weights[layernum][i,j] = aux[j]
+        #biases
+        biases[layernum] = np.zeros(currentLayerSize)
+        for i in range(currentLayerSize):
+            line=f.readline()
+            x = float(line.strip().split(",")[0])
+            biases[layernum][i] = x
 
-        i=0
-        while i<layerSizes[layer+1]:
-            biases[layer][i] = float(record[0])
-            i+=1
-            line = f.readline()
-            record = line.split(',')
-
-        layer+=1
-        i=0
-        j=0
     f.close()
     
     if withNorm:

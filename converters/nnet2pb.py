@@ -16,7 +16,7 @@ def nnet2pb(nnetFile, pbFile="", output_node_names = "y_out"):
         output_node_names (str, optional): Name of the final operation in the Tensorflow graph. Default: "y_out"
     '''
     weights, biases = readNNet(nnetFile)
-    inputSize = weights[0].shape[0]
+    inputSize = weights[0].shape[1]
     
     # Default pb filename if none are specified
     if pbFile=="":
@@ -29,7 +29,7 @@ def nnet2pb(nnetFile, pbFile="", output_node_names = "y_out"):
     # Define model and assign values to tensors
     currentTensor = tf.placeholder(tf.float32, [None, inputSize],name='input')
     for i in range(len(weights)):
-        W = tf.get_variable("W%d"%i, shape=weights[i].shape)
+        W = tf.get_variable("W%d"%i, shape=weights[i].T.shape)
         b = tf.get_variable("b%d"%i, shape=biases[i].shape)
         
         # Use ReLU for all but last operation, and name last operation to desired name
@@ -39,7 +39,7 @@ def nnet2pb(nnetFile, pbFile="", output_node_names = "y_out"):
             currentTensor =  tf.add(tf.matmul(currentTensor ,W), b,name=output_node_names)
 
         # Assign values to tensors
-        sess.run(tf.assign(W,weights[i]))
+        sess.run(tf.assign(W,weights[i].T))
         sess.run(tf.assign(b,biases[i]))
     
     # Freeze the graph to write the pb file

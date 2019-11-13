@@ -5,12 +5,12 @@ from NNet.utils.writeNNet import writeNNet
 def normalizeNNet(readNNetFile, writeNNetFile=None):
     weights, biases, inputMins, inputMaxes, means, ranges = readNNet(readNNetFile,withNorm=True)
     
-    numInputs = weights[0].shape[0]
-    numOutputs = weights[-1].shape[1]
+    numInputs = weights[0].shape[1]
+    numOutputs = weights[-1].shape[0]
     
     # Adjust weights and biases of first layer
-    for i in range(numInputs): weights[0][i,:]/=ranges[i]
-    biases[0]-= np.matmul(weights[0].T,means[:-1])
+    for i in range(numInputs): weights[0][:,i]/=ranges[i]
+    biases[0]-= np.matmul(weights[0],means[:-1])
     
     # Adjust weights and biases of last layer
     weights[-1]*=ranges[-1]

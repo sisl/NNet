@@ -20,8 +20,8 @@ def nnet2onnx(nnetFile, onnxFile="", outputVar = "y_out", inputVar="X", normaliz
     else:
         weights, biases = readNNet(nnetFile)
         
-    inputSize = weights[0].shape[0]
-    outputSize = weights[-1].shape[1]
+    inputSize = weights[0].shape[1]
+    outputSize = weights[-1].shape[0]
     numLayers = len(weights)
     
     # Default onnx filename if none specified
@@ -44,7 +44,7 @@ def nnet2onnx(nnetFile, onnxFile="", outputVar = "y_out", inputVar="X", normaliz
            
         # Weight matrix multiplication
         operations.append(helper.make_node("MatMul",["W%d"%i,inputVar],["M%d"%i]))
-        initializers.append(numpy_helper.from_array(weights[i].T.astype(np.float32),name="W%d"%i))
+        initializers.append(numpy_helper.from_array(weights[i].astype(np.float32),name="W%d"%i))
             
         # Bias add 
         operations.append(helper.make_node("Add",["M%d"%i,"B%d"%i],[outputName]))
