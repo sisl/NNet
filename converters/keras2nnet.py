@@ -31,6 +31,9 @@ model_params = model.get_weights()
 # Split the network parameters into weights and biases, assuming they alternate
 weights = model_params[0:len(model_params):2]
 biases  = model_params[1:len(model_params):2]
+
+# Transpose weight matrices
+weights = [w.T for w in weights]
     
 ## Script showing how to run pb2nnet
 # Min and max values used to bound the inputs
