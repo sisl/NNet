@@ -1,6 +1,6 @@
 import unittest
 import sys
-sys.path.append('../..')
+sys.path.append('..')
 import numpy as np
 import onnx
 from NNet.converters.nnet2onnx import nnet2onnx
