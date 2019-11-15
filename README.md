@@ -1,5 +1,8 @@
 ## NNet Repository
 
+[![Build Status](https://travis-ci.org/sisl/NNet.svg?branch=master)](https://travis-ci.org/sisl/NNet)
+[![Coverage Status](https://coveralls.io/repos/github/sisl/NNet/badge.svg?branch=master)](https://coveralls.io/github/sisl/NNet?branch=master)
+
 ### Introduction
 The .nnet file format for fully connected ReLU networks was originially created in 2016 to define aircraft collision avoidance neural networks in a human-readable text document. Since then it was incorporated into the Reluplex repository and used to define benchmark neural networks.
 

@@ -5,8 +5,9 @@ from tensorflow.python.framework import graph_util
 import os
 os.environ["CUDA_VISIBLE_DEVICES"] = "-1"
 from NNet.utils.readNNet import readNNet
+from NNet.utils.normalizeNNet import normalizeNNet
 
-def nnet2pb(nnetFile, pbFile="", output_node_names = "y_out"):
+def nnet2pb(nnetFile, pbFile="", output_node_names = "y_out", normalizeNetwork=False):
     '''
     Read a .nnet file and create a frozen Tensorflow graph and save to a .pb file
     
@@ -15,7 +16,10 @@ def nnet2pb(nnetFile, pbFile="", output_node_names = "y_out"):
         pbFile (str, optional): Name for the created .pb file. Default: ""
         output_node_names (str, optional): Name of the final operation in the Tensorflow graph. Default: "y_out"
     '''
-    weights, biases = readNNet(nnetFile)
+    if normalizeNetwork:
+        weights, biases = normalizeNNet(nnetFile)
+    else:
+        weights, biases = readNNet(nnetFile)
     inputSize = weights[0].shape[1]
     
     # Default pb filename if none are specified
