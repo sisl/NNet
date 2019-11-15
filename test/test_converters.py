@@ -21,7 +21,7 @@ class TestConverters(unittest.TestCase):
     def test_onnx(self):
 
         ### Options###
-        nnetFile = "../nnet/TestNetwork.nnet"
+        nnetFile = "nnet/TestNetwork.nnet"
         testInput = np.array([1.0,1.0,1.0,100.0,1.0]).astype(np.float32)
         ##############
 
@@ -66,7 +66,7 @@ class TestConverters(unittest.TestCase):
     def test_pb(self):
 
         ### Options###
-        nnetFile = "../nnet/TestNetwork.nnet"
+        nnetFile = "nnet/TestNetwork.nnet"
         testInput = np.array([1.0,1.0,1.0,100.0,1.0]).astype(np.float32)
         ##############
 
