@@ -2,4 +2,4 @@ pytest
 numpy
 onnx
 onnxruntime
-tensorflow
+tensorflow==1.14.0
