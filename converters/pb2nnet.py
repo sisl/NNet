@@ -105,6 +105,11 @@ def pb2nnet(pbFile, inputMins=None, inputMaxes=None, means=None, ranges=None, nn
     biases = []
     foundInputFlag = False
     foundInputFlag = processGraph(outputOp, inputOp, foundInputFlag, weights, biases)
+    inputShape = inputOp.outputs[0].shape.as_list()
+    assert(inputShape[0] is None)
+    assert(inputShape[1] > 0)
+    assert(len(inputShape)==2)
+    inputSize = inputShape[1]
     if foundInputFlag:
         
         # Default values for input bounds and normalization constants
