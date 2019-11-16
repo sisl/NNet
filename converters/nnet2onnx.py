@@ -71,7 +71,7 @@ def nnet2onnx(nnetFile, onnxFile="", outputVar = "y_out", inputVar="X", normaliz
     onnx.save(model_def, onnxFile)
   
 
-if __name__ =='__main__':
+if __name__ == '__main__':
     # Read user inputs and run nnet2onnx function for different numbers of inputs
     if len(sys.argv)>1:
         nnetFile = sys.argv[1]

@@ -123,7 +123,7 @@ def pb2nnet(pbFile, inputMins=None, inputMaxes=None, means=None, ranges=None, nn
     else:
         print("Could not find the given input in graph: %s"%inputOp.name)
 
-if __name__=='__main__':
+if __name__ == '__main__':
     # Read user inputs and run pb2nnet function
     # If non-default values of input bounds and normalization constants are needed, this function should be run from a script
     # instead of the command line

@@ -114,7 +114,7 @@ def onnx2nnet(onnxFile, inputMins=None, inputMaxes=None, means=None, ranges=None
     else:
         print("Could not write NNet file!")
         
-if __name__=='__main__':
+if __name__ == '__main__':
     # Read user inputs and run onnx2nnet function
     # If non-default values of input bounds and normalization constants are needed, 
     # this function should be run from a script instead of the command line

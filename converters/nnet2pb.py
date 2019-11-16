@@ -70,7 +70,7 @@ def freeze_graph(sess, output_graph_name, output_node_names):
     with tf.gfile.GFile(output_graph_name, "w") as f:
         f.write(output_graph_def.SerializeToString())
   
-if __name__=='__main__':
+if __name__ == '__main__':
     # Read user inputs and run writePB function
     if len(sys.argv)>1:
         nnetFile = sys.argv[1]
