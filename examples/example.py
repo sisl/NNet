@@ -1,3 +1,5 @@
+import sys
+sys.path.append('../..')
 from NNet.python.nnet import *
 nnet = NNet('../nnet/TestNetwork.nnet')
 print("Num Inputs: %d"%nnet.num_inputs())
