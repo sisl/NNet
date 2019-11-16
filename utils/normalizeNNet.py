@@ -26,7 +26,7 @@ def normalizeNNet(readNNetFile, writeNNetFile=None):
         return None
     return weights, biases
    
-if __name__=='__main__':
+if __name__ == '__main__':
     readNNetFile = '../nnet/TestNetwork.nnet'
     writeNNetFile = '../nnet/TestNetwork3.nnet'
     normalizeNNet(readNNetFile,writeNNetFile)
