@@ -4,7 +4,7 @@ python:
 install:
   - pip install -r test_requirements.txt
 script:
-  - pytest --cov=python test
+  - pytest --cov=python --cov=utils --conv=converters test
 after_success:
   - coveralls
 notifications:
