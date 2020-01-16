@@ -39,16 +39,16 @@ def readNNet(nnetFile, withNorm=False):
     
     # Read the normalization information
     line = f.readline()
-    inputMins = [float(x) for x in line.strip().split(",")[:-1]]
+    inputMins = [float(x) for x in line.strip().split(",") if x]
 
     line = f.readline()
-    inputMaxes = [float(x) for x in line.strip().split(",")[:-1]]
+    inputMaxes = [float(x) for x in line.strip().split(",") if x]
 
     line = f.readline()
-    means = [float(x) for x in line.strip().split(",")[:-1]]
+    means = [float(x) for x in line.strip().split(",") if x]
 
     line = f.readline()
-    ranges = [float(x) for x in line.strip().split(",")[:-1]]
+    ranges = [float(x) for x in line.strip().split(",") if x]
 
     # Read weights and biases
     weights=[]
