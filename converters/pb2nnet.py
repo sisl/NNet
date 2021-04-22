@@ -4,11 +4,11 @@ from tensorflow.python.framework import graph_util
 import os
 os.environ["CUDA_VISIBLE_DEVICES"] = "-1"
 import tensorflow as tf
-from NNet.scripts.writeNNet import writeNNet
+from NNet.utils.writeNNet import writeNNet
 
 def processGraph(op,input_op, foundInputFlag, weights, biases):
     '''
-    Recursively search the graph and add popular the weight and bias lists
+    Recursively search the graph and populate the weight and bias lists
     
     Args:
         op (tf.op): Current tensorflow operation in search
@@ -25,7 +25,7 @@ def processGraph(op,input_op, foundInputFlag, weights, biases):
         # If constant, extract values and add to weight or bias list depending on shape
         param = tensor_util.MakeNdarray(op.node_def.attr['value'].tensor)
         if len(param.shape)>1:
-            weights+=[param]
+            weights+=[param.T]
         else:
             biases+=[param]
             
@@ -41,10 +41,10 @@ def processGraph(op,input_op, foundInputFlag, weights, biases):
             foundInputFlag = True
     return foundInputFlag
         
-def pb2nnet(pbFile, inputMins, inputMaxes, means, ranges, order, nnetFile="", inputName="", outputName="", savedModel=False, savedModelTags=[]):
+def pb2nnet(pbFile, inputMins=None, inputMaxes=None, means=None, ranges=None, nnetFile="", inputName="", outputName="", savedModel=False, savedModelTags=[], order="xW"):
     '''
-    Constructs a MarabouNetworkTF object from a frozen Tensorflow protobuf or SavedModel
-    
+    Write a .nnet file from a frozen Tensorflow protobuf or SavedModel
+
     Args:
         pbFile (str): If savedModel is false, path to the frozen graph .pb file.
                       If savedModel is true, path to SavedModel folder, which
@@ -91,8 +91,12 @@ def pb2sess(pbFile,inputName="", outputName="", savedModel=False, savedModelTags
     return sess
 
 def FFTF2nnet(sess, inputMins, inputMaxes, means, ranges, order, nnetFile="", inputName="", outputName=""):
-    import pdb; pdb.set_trace()
-    weights, biases = FFTF2W(sess, inputName, outputName)
+    weights, biases, inputSize = FFTF2W(sess, inputName, outputName)
+    # Default values for input bounds and normalization constants
+    if inputMins is None: inputMins = inputSize*[np.finfo(np.float32).min]
+    if inputMaxes is None: inputMaxes = inputSize*[np.finfo(np.float32).max]
+    if means is None: means = (inputSize+1)*[0.0]
+    if ranges is None: ranges = (inputSize+1)*[1.0]
     writeNNet(weights,biases,inputMins,inputMaxes,means,ranges,order, nnetFile)
 
 def FFTF2W(sess, inputName="", outputName=""):
@@ -116,15 +120,20 @@ def FFTF2W(sess, inputName="", outputName=""):
     biases = []
     foundInputFlag = False
     foundInputFlag = processGraph(outputOp, inputOp, foundInputFlag, weights, biases)
+    inputShape = inputOp.outputs[0].shape.as_list()
+    assert(inputShape[0] is None)
+    assert(inputShape[1] > 0)
+    assert(len(inputShape)==2)
+    inputSize = inputShape[1]
     if foundInputFlag:
-        return weights, biases
+        return weights, biases, inputSize
     else:
         print("Could not find the given input in graph: %s"%inputOp.name)
 
 
 def pb2W(pbFile, inputName="", outputName="", savedModel=False, savedModelTags=[]):
     sess = pb2sess(pbFile,inputName, outputName, savedModel, savedModelTags)
-    weights, biases = FFTF2W(sess, inputName, outputName)
+    weights, biases, inputSize = FFTF2W(sess, inputName, outputName)
     return weights, biases
 
 def test():
@@ -138,7 +147,18 @@ def test():
     ranges = [60261.0,6.28318530718,6.28318530718,1100.0,1200.0,373.94992]
 
     # Tensorflow pb file to convert to .nnet file
-    pbFile = '../nnet/TestNetwork.pb'
+    pbFile = 'NNet/nnet/TestNetwork2.pb'
 
     # Convert the file
-    pb2nnet(pbFile, inputMins, inputMaxes, means, ranges, order="xW")
+    pb2nnet(pbFile, inputMins, inputMaxes, means, ranges, order="Wx", nnetFile="NNet/nnet/TestNetwork2_converted.nnet")
+
+if __name__ == '__main__':
+    # Read user inputs and run pb2nnet function
+    # If non-default values of input bounds and normalization constants are needed, this function should be run from a script
+    # instead of the command line
+    if len(sys.argv)>1:
+        print("WARNING: Using the default values of input bounds and normalization constants")
+        pbFile = sys.argv[1]
+        pb2nnet(pbFile)
+    else:
+        print("Need to specify which Tensorflow .pb file to convert to .nnet!")

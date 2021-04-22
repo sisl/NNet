@@ -63,6 +63,7 @@ def writeNNet(weights,biases,inputMins,inputMaxes,means,ranges,order,fileName):
         f2.write("0,\n") #Unused Flag
 
         # Write Min, Max, Mean, and Range of each of the inputs and outputs for normalization
+        import pdb; pdb.set_trace()
         f2.write(','.join(str(inputMins[i])  for i in range(inputSize)) + ',\n') #Minimum Input Values
         f2.write(','.join(str(inputMaxes[i]) for i in range(inputSize)) + ',\n') #Maximum Input Values                
         f2.write(','.join(str(means[i])      for i in range(inputSize+1)) + ',\n') #Means for normalizations

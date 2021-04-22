@@ -1,0 +1,7 @@
+pytest
+pytest-cov
+coveralls
+numpy
+onnx
+onnxruntime
+tensorflow==1.15.2

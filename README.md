@@ -1,9 +1,14 @@
 ## NNet Repository
 
-### Introduction
-The .nnet file format for fully connected ReLU networks was originially created in 2016 to define aircraft collision avoidance neural networks in a human-readable text document. Since then it was incorporated into the Reluplex repository and used to define benchmark neural networks.
+[![Build Status](https://travis-ci.org/sisl/NNet.svg?branch=master)](https://travis-ci.org/sisl/NNet)
+[![Coverage Status](https://coveralls.io/repos/github/sisl/NNet/badge.svg?branch=master&service=github)](https://coveralls.io/github/sisl/NNet?branch=master)
 
-This repository contains documentation for the .nnet format as well as example scripts to read/write .nnet files. The nnet folder contains example neural network files, the scripts folder contains python scripts to generate the .nnet files from Tensorflow/Keras as well as to generate a Tensorflow frozen model from a .nnet file, and the readNNet folder contains Python, Julia, and C++ examples for reading and evaluating .nnet networks.
+### Introduction
+The .nnet file format for fully connected ReLU networks was originially created in 2016 to define aircraft collision avoidance neural networks in a human-readable text document. Since then it was incorporated into the Reluplex repository and used to define benchmark neural networks. This format is a simple text-based format for feed-forward, fully-connected, ReLU-activated neural networks. It is not affiliated with Neuroph or other frameworks that produce files with the .nnet extension.
+
+This repository contains documentation for the .nnet format as well as useful functions for working with the networks. The nnet folder contains example neural network files. The converters folder contains functions to convert the .nnet files to Tensorflow, ONNX, and Keras formats and vice-versa. The python, julia, and cpp folders contain python, julia, and C++ functions for reading and evaluating .nnet networks. The examples folder provides python examples for using the available functions.
+
+This repository is set up as a python package. To run the examples, make sure that the folder in which this repository resides (the parent directory of NNet) is added to the PYTHONPATH environment variable.
 
 ### File format of .nnet
 The file begins with header lines, some information about the network architecture, normalization information, and then model parameters. Line by line:<br/><br/>
@@ -22,12 +27,10 @@ The minimum/maximum input values are used to define the range of input values se
 The mean/range values are the values used to normalize the network training data before training the network. The normalization substracts the mean and divides by the range, giving a distribution that is zero mean and unit range. Therefore, new inputs to the network should be normalized as well, so there is a mean/range value for every input to the network. There is also an additional mean/range value for the network outputs, but just one value for all outputs. The raw network outputs can be re-scaled by multiplying by the range and adding the mean.
 
 ### Writing .nnet files
-In the scripts folder, the file writeNNet.py conatins a python method for writing neural network data to a .nnet file. The main method, writeNNet, requires a list of weights, biases, minimum input values, maximum input values, mean of inputs/ouput, and range of inputs/output, and a filename to write the neural network. This function can be imported to any python file using "from writeNNet import writeNNet", assuming that the scripts folder is the current directory or is in the PYTHONPATH.
-
-The pb2nnet.py used the writeNNet function to show how a frozen Tensorflow model or SavedModel can be converted to the .nnet format, assuming the model is a linear, fully connected ReLU model. Also, keras2nnet.py demonstrates how the weights can be extracted from a Keras model and used to write a .nnet file. Lastly, the .nnet file can be used to create a frozen Tensorflow model using nnet2pb.py. Converting a .nnet file to a frozen Tensorflow file and then back again shows that the file format conversions do not change the model.
+In the utils folder, the file writeNNet.py contains a python method for writing neural network data to a .nnet file. The main method, writeNNet, requires a list of weights, biases, minimum input values, maximum input values, mean of inputs/ouput, and range of inputs/output, and a filename to write the neural network.
 
 ### Loading and evaluating .nnet files
-In the readNNet folder, there are three subfolders for C++, Julia, and Python examples. Each subfolder contains a nnet.* file that contains functions for loading the network from a .nnet file and then evaluating a set of inputs given the loaded model. There are examples in each folder to demonstrate how the functions can be used.
+There are three folders for C++, Julia, and Python examples. Each subfolder contains a nnet.* file that contains functions for loading the network from a .nnet file and then evaluating a set of inputs given the loaded model. There are examples in each folder to demonstrate how the functions can be used.
 
 ## License
 This code is licensed under the MIT license. See LICENSE for details.

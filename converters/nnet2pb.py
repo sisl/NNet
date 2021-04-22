@@ -4,8 +4,10 @@ import sys
 from tensorflow.python.framework import graph_util
 import os
 os.environ["CUDA_VISIBLE_DEVICES"] = "-1"
+from NNet.utils.readNNet import readNNet
+from NNet.utils.normalizeNNet import normalizeNNet
 
-def nnet2pb(nnetFile, pbFile="", output_node_names = "y_out"):
+def nnet2pb(nnetFile, pbFile="", output_node_names = "y_out", normalizeNetwork=False):
     '''
     Read a .nnet file and create a frozen Tensorflow graph and save to a .pb file
     
@@ -14,68 +16,15 @@ def nnet2pb(nnetFile, pbFile="", output_node_names = "y_out"):
         pbFile (str, optional): Name for the created .pb file. Default: ""
         output_node_names (str, optional): Name of the final operation in the Tensorflow graph. Default: "y_out"
     '''
+    if normalizeNetwork:
+        weights, biases = normalizeNNet(nnetFile)
+    else:
+        weights, biases = readNNet(nnetFile)
+    inputSize = weights[0].shape[1]
     
     # Default pb filename if none are specified
     if pbFile=="":
         pbFile = nnetFile[:-4]+'pb'
-        
-    # Open NNet file
-    f = open(nnetFile,'r')
-    
-    # Skip header lines
-    line = f.readline()
-    while line[:2]=="//":
-        line = f.readline()
-        
-    # Extract information about network architecture
-    record = line.split(',')
-    numLayers   = int(record[0])
-    inputSize   = int(record[1])
-
-    line = f.readline()
-    record = line.split(',')
-    layerSizes = np.zeros(numLayers+1,'int')
-    for i in range(numLayers+1):
-        layerSizes[i]=int(record[i])
-
-    # Skip the normalization information
-    f.readline()
-    line = f.readline()
-    line = f.readline()
-    line = f.readline()
-    line = f.readline()
-
-    # Initialize list of weights and biases
-    weights = [np.zeros((layerSizes[i],layerSizes[i+1])) for i in range(numLayers)]
-    biases  = [np.zeros(layerSizes[i+1]) for i in range(numLayers)]
-
-    # Read remainder of file and place each value in the correct spot in a weight matrix or bias vector
-    layer=0
-    i=0
-    j=0
-    line = f.readline()
-    record = line.split(',')
-    while layer+1 < len(layerSizes):
-        while i<layerSizes[layer+1]:
-            while record[j]!="\n":
-                weights[layer][j,i] = float(record[j])
-                j+=1
-            j=0
-            i+=1
-            line = f.readline()
-            record = line.split(',')
-
-        i=0
-        while i<layerSizes[layer+1]:
-            biases[layer][i] = float(record[0])
-            i+=1
-            line = f.readline()
-            record = line.split(',')
-
-        layer+=1
-        i=0
-        j=0
-    f.close()
     
     # Reset tensorflow and load a session using only CPUs
     tf.reset_default_graph()
@@ -84,7 +33,7 @@ def nnet2pb(nnetFile, pbFile="", output_node_names = "y_out"):
     # Define model and assign values to tensors
     currentTensor = tf.placeholder(tf.float32, [None, inputSize],name='input')
     for i in range(len(weights)):
-        W = tf.get_variable("W%d"%i, shape=weights[i].shape)
+        W = tf.get_variable("W%d"%i, shape=weights[i].T.shape)
         b = tf.get_variable("b%d"%i, shape=biases[i].shape)
         
         # Use ReLU for all but last operation, and name last operation to desired name
@@ -94,7 +43,7 @@ def nnet2pb(nnetFile, pbFile="", output_node_names = "y_out"):
             currentTensor =  tf.add(tf.matmul(currentTensor ,W), b,name=output_node_names)
 
         # Assign values to tensors
-        sess.run(tf.assign(W,weights[i]))
+        sess.run(tf.assign(W,weights[i].T))
         sess.run(tf.assign(b,biases[i]))
     
     # Freeze the graph to write the pb file
@@ -121,15 +70,16 @@ def freeze_graph(sess, output_graph_name, output_node_names):
     with tf.gfile.GFile(output_graph_name, "w") as f:
         f.write(output_graph_def.SerializeToString())
   
-# Read user inputs and run writePB function
-if len(sys.argv)>1:
-    nnetFile = sys.argv[1]
-    pbFile = ""
-    output_node_names = "y_out"
-    if len(sys.argv)>2:
-        pbFile = sys.argv[2]
-    if len(sys.argv)>3:
-        output_node_names = argv[3]
-    nnet2pb(nnetFile,pbFile,output_node_names)
-else:
-    print("Need to specify which .nnet file to convert to Tensorflow frozen graph!")
+if __name__ == '__main__':
+    # Read user inputs and run writePB function
+    if len(sys.argv)>1:
+        nnetFile = sys.argv[1]
+        pbFile = ""
+        output_node_names = "y_out"
+        if len(sys.argv)>2:
+            pbFile = sys.argv[2]
+        if len(sys.argv)>3:
+            output_node_names = argv[3]
+        nnet2pb(nnetFile,pbFile,output_node_names)
+    else:
+        print("Need to specify which .nnet file to convert to Tensorflow frozen graph!")
