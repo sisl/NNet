@@ -1,6 +1,6 @@
 import numpy as np
 
-def writeNNet(weights,biases,inputMins,inputMaxes,means,ranges,fileName):
+def writeNNet(weights,biases,inputMins,inputMaxes,means,ranges,order,fileName):
     '''
     Write network data to the .nnet file format
 
@@ -40,7 +40,12 @@ def writeNNet(weights,biases,inputMins,inputMaxes,means,ranges,fileName):
 
         #Extract the necessary information and write the header information
         numLayers = len(weights)
-        inputSize = weights[0].shape[1]
+        if order == 'xW':
+            inputSize = weights[0].shape[0]
+        elif order == 'Wx':
+            inputSize = weights[0].shape[1]
+        else:
+            raise NotImplementedError
         outputSize = len(biases[-1])
         maxLayerSize = inputSize
         
@@ -58,6 +63,7 @@ def writeNNet(weights,biases,inputMins,inputMaxes,means,ranges,fileName):
         f2.write("0,\n") #Unused Flag
 
         # Write Min, Max, Mean, and Range of each of the inputs and outputs for normalization
+        import pdb; pdb.set_trace()
         f2.write(','.join(str(inputMins[i])  for i in range(inputSize)) + ',\n') #Minimum Input Values
         f2.write(','.join(str(inputMaxes[i]) for i in range(inputSize)) + ',\n') #Maximum Input Values                
         f2.write(','.join(str(means[i])      for i in range(inputSize+1)) + ',\n') #Means for normalizations
@@ -70,11 +76,24 @@ def writeNNet(weights,biases,inputMins,inputMaxes,means,ranges,fileName):
         # The pattern is repeated by next writing the weights from the first hidden layer to the second hidden layer,
         # followed by the biases of the second hidden layer.
         ##################
-        for w,b in zip(weights,biases):
-            for i in range(w.shape[0]):
+        if order == 'xW':
+            for w,b in zip(weights,biases):
                 for j in range(w.shape[1]):
-                    f2.write("%.5e," % w[i][j]) #Five digits written. More can be used, but that requires more more space.
-                f2.write("\n")
-                
-            for i in range(len(b)):
-                f2.write("%.5e,\n" % b[i]) #Five digits written. More can be used, but that requires more more space.
+                    for i in range(w.shape[0]):
+                        f2.write("%.5e," % w[i][j]) #Five digits written. More can be used, but that requires more more space.
+                    f2.write("\n")
+                    
+                for i in range(len(b)):
+                    f2.write("%.5e,\n" % b[i]) #Five digits written. More can be used, but that requires more more space.
+        elif order == 'Wx':
+            for w,b in zip(weights,biases):
+                for i in range(w.shape[0]):
+                    for j in range(w.shape[1]):
+                        f2.write("%.5e," % w[i][j])
+                    f2.write("\n")
+                for i in range(len(b)):
+                    f2.write("%.5e,\n" % b[i])
+        else: 
+            raise NotImplementedError
+
+

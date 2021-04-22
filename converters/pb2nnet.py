@@ -21,7 +21,7 @@ def processGraph(op,input_op, foundInputFlag, weights, biases):
         (bool): Updated foundInputFlag
     '''
     
-    if op.node_def.op=='Const':
+    if op.node_def.op=='Const' and op.outputs[0].consumers()[0].type == 'Identity' :
         # If constant, extract values and add to weight or bias list depending on shape
         param = tensor_util.MakeNdarray(op.node_def.attr['value'].tensor)
         if len(param.shape)>1:
@@ -40,9 +40,8 @@ def processGraph(op,input_op, foundInputFlag, weights, biases):
         else:
             foundInputFlag = True
     return foundInputFlag
-
         
-def pb2nnet(pbFile, inputMins=None, inputMaxes=None, means=None, ranges=None, nnetFile="", inputName="", outputName="", savedModel=False, savedModelTags=[]):
+def pb2nnet(pbFile, inputMins=None, inputMaxes=None, means=None, ranges=None, nnetFile="", inputName="", outputName="", savedModel=False, savedModelTags=[], order="xW"):
     '''
     Write a .nnet file from a frozen Tensorflow protobuf or SavedModel
 
@@ -63,6 +62,11 @@ def pb2nnet(pbFile, inputMins=None, inputMaxes=None, means=None, ranges=None, nn
     if nnetFile=="":
         nnetFile = pbFile[:-2] + 'nnet'
 
+    sess = pb2sess(pbFile,inputName="", outputName="", savedModel=False, savedModelTags=[])
+
+    FFTF2nnet(sess, inputMins, inputMaxes, means, ranges, order, nnetFile, inputName, outputName)
+
+def pb2sess(pbFile,inputName="", outputName="", savedModel=False, savedModelTags=[]):
     if savedModel:
         ### Read SavedModel ###
         sess = tf.Session()
@@ -84,7 +88,18 @@ def pb2nnet(pbFile, inputMins=None, inputMaxes=None, means=None, ranges=None, nn
             tf.import_graph_def(graph_def, name="")
         sess = tf.Session(graph=graph)
         ### END reading protobuf ###
+    return sess
 
+def FFTF2nnet(sess, inputMins, inputMaxes, means, ranges, order, nnetFile="", inputName="", outputName=""):
+    weights, biases, inputSize = FFTF2W(sess, inputName, outputName)
+    # Default values for input bounds and normalization constants
+    if inputMins is None: inputMins = inputSize*[np.finfo(np.float32).min]
+    if inputMaxes is None: inputMaxes = inputSize*[np.finfo(np.float32).max]
+    if means is None: means = (inputSize+1)*[0.0]
+    if ranges is None: ranges = (inputSize+1)*[1.0]
+    writeNNet(weights,biases,inputMins,inputMaxes,means,ranges,order, nnetFile)
+
+def FFTF2W(sess, inputName="", outputName=""):
     ### Find operations corresponding to input and output ###
     if inputName:
         inputOp = sess.graph.get_operation_by_name(inputName)
@@ -111,17 +126,31 @@ def pb2nnet(pbFile, inputMins=None, inputMaxes=None, means=None, ranges=None, nn
     assert(len(inputShape)==2)
     inputSize = inputShape[1]
     if foundInputFlag:
-        
-        # Default values for input bounds and normalization constants
-        if inputMins is None: inputMins = inputSize*[np.finfo(np.float32).min]
-        if inputMaxes is None: inputMaxes = inputSize*[np.finfo(np.float32).max]
-        if means is None: means = (inputSize+1)*[0.0]
-        if ranges is None: ranges = (inputSize+1)*[1.0]
-            
-        # Write NNet file
-        writeNNet(weights,biases,inputMins,inputMaxes,means,ranges,nnetFile)
+        return weights, biases, inputSize
     else:
         print("Could not find the given input in graph: %s"%inputOp.name)
+
+
+def pb2W(pbFile, inputName="", outputName="", savedModel=False, savedModelTags=[]):
+    sess = pb2sess(pbFile,inputName, outputName, savedModel, savedModelTags)
+    weights, biases, inputSize = FFTF2W(sess, inputName, outputName)
+    return weights, biases
+
+def test():
+    ## Script showing how to run pb2nnet
+    # Min and max values used to bound the inputs
+    inputMins  = [0.0,-3.141593,-3.141593,100.0,0.0]
+    inputMaxes = [60760.0,3.141593,3.141593,1200.0,1200.0]
+
+    # Mean and range values for normalizing the inputs and outputs. All outputs are normalized with the same value
+    means  = [1.9791091e+04,0.0,0.0,650.0,600.0,7.5188840201005975]
+    ranges = [60261.0,6.28318530718,6.28318530718,1100.0,1200.0,373.94992]
+
+    # Tensorflow pb file to convert to .nnet file
+    pbFile = 'NNet/nnet/TestNetwork2.pb'
+
+    # Convert the file
+    pb2nnet(pbFile, inputMins, inputMaxes, means, ranges, order="Wx", nnetFile="NNet/nnet/TestNetwork2_converted.nnet")
 
 if __name__ == '__main__':
     # Read user inputs and run pb2nnet function
