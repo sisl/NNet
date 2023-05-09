@@ -78,7 +78,7 @@ if __name__ == '__main__':
         if len(sys.argv)>2:
             onnxFile = sys.argv[2]
             if len(sys.argv)>3:
-                outputName = argv[3]
+                outputName = sys.argv[3]
                 nnet2onnx(nnetFile,onnxFile,outputName)
             else: nnet2onnx(nnetFile,onnxFile)
         else: nnet2onnx(nnetFile)
