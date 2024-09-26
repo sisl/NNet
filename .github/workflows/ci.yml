@@ -1,23 +1,27 @@
 name: Python CI
 
+# Trigger the workflow on push or pull request events
 on: [push, pull_request]
 
+# Define jobs for the workflow
 jobs:
   build:
+    # Use the latest Ubuntu environment
     runs-on: ubuntu-latest
 
+    # Test across multiple Python versions
     strategy:
       matrix:
-        python-version: ["3.6"]
+        python-version: ["3.7", "3.8", "3.9", "3.10", "3.11"]
 
     steps:
-    # Step 1: Checkout the code from the repository
+    # Step 1: Check out the repository code
     - name: Checkout code
-      uses: actions/checkout@v2
+      uses: actions/checkout@v3  # Updated to use the latest version
 
     # Step 2: Set up Python
     - name: Set up Python
-      uses: actions/setup-python@v2
+      uses: actions/setup-python@v4  # Updated to use the latest version
       with:
         python-version: ${{ matrix.python-version }}
 
@@ -38,6 +42,6 @@ jobs:
       with:
         github-token: ${{ secrets.GITHUB_TOKEN }}
 
-    # Optional: Disable email notifications for GitHub Actions
+    # Optional: Disable email notifications
     - name: Notifications
       run: echo "Email notifications are disabled"
