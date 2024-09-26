@@ -1,34 +1,52 @@
-name: CI
+name: CI Workflow
 
-on:
-  push:
-    branches:
-      - main
-  pull_request:
-  workflow_dispatch:
+on: [push, pull_request]
 
 jobs:
-  test:
-    name: Julia ${{ matrix.version }} - ${{ matrix.os }} - ${{ matrix.arch }} - ${{ github.event_name }}
+  python-build:
     runs-on: ubuntu-latest
+
     strategy:
-      fail-fast: false
       matrix:
-        version:
-          - "1" 
-        os:
-          - ubuntu-latest
-        arch:
-          - x64
+        python-version: ["3.7", "3.8", "3.9", "3.10", "3.11"]
+
     steps:
-      - uses: actions/checkout@v4
-      - uses: julia-actions/setup-julia@v2
-        with:
-          version: ${{ matrix.version }}
-          arch: ${{ matrix.arch }}
-      - uses: julia-actions/julia-buildpkg@v1
-      - uses: julia-actions/julia-runtest@v1
-      - uses: julia-actions/julia-processcoverage@v1
-      - uses: codecov/codecov-action@v4
-        env:
-          CODECOV_TOKEN: ${{ secrets.CODECOV_TOKEN }}
+    - name: Checkout code
+      uses: actions/checkout@v3
+
+    - name: Set up Python
+      uses: actions/setup-python@v4
+      with:
+        python-version: ${{ matrix.python-version }}
+
+    - name: Install Python dependencies
+      run: |
+        pip install --upgrade pip
+        pip install -r test_requirements.txt
+
+    - name: Run Python tests
+      run: python -m pytest --cov=utils --cov=python --cov=converters test
+
+    - name: Upload coverage to Coveralls
+      uses: coverallsapp/github-action@v1
+      with:
+        github-token: ${{ secrets.GITHUB_TOKEN }}
+
+  julia-build:
+    runs-on: ubuntu-latest
+
+    steps:
+    - name: Checkout code
+      uses: actions/checkout@v3
+
+    - name: Set up Julia
+      uses: julia-actions/setup-julia@v1
+      with:
+        version: '1.6'  # You can adjust to the appropriate Julia version for your project
+
+    - name: Install Julia dependencies
+      run: |
+        julia -e 'using Pkg; Pkg.instantiate()'
+
+    - name: Run Julia tests
+      run: julia -e 'using Pkg; Pkg.test()'
