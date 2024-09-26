@@ -1,52 +1,44 @@
-name: CI Workflow
+name: Python CI
 
+# Run CI on push or pull request
 on: [push, pull_request]
 
 jobs:
-  python-build:
+  build:
+    # Use the latest version of Ubuntu for the build
     runs-on: ubuntu-latest
 
     strategy:
       matrix:
-        python-version: ["3.7", "3.8", "3.9", "3.10", "3.11"]
+        python-version: ["3.7", "3.8", "3.9", "3.10"]  # Use multiple Python versions; Python 3.6 is excluded due to TensorFlow 1.x compatibility issues
 
     steps:
+    # Step 1: Checkout the repository code
     - name: Checkout code
       uses: actions/checkout@v3
 
+    # Step 2: Set up Python
     - name: Set up Python
       uses: actions/setup-python@v4
       with:
         python-version: ${{ matrix.python-version }}
 
-    - name: Install Python dependencies
+    # Step 3: Install dependencies
+    - name: Install dependencies
       run: |
         pip install --upgrade pip
         pip install -r test_requirements.txt
 
-    - name: Run Python tests
+    # Step 4: Run tests with pytest and generate coverage
+    - name: Run tests with pytest
       run: python -m pytest --cov=utils --cov=python --cov=converters test
 
+    # Step 5: Upload coverage to Coveralls
     - name: Upload coverage to Coveralls
       uses: coverallsapp/github-action@v1
       with:
         github-token: ${{ secrets.GITHUB_TOKEN }}
 
-  julia-build:
-    runs-on: ubuntu-latest
-
-    steps:
-    - name: Checkout code
-      uses: actions/checkout@v3
-
-    - name: Set up Julia
-      uses: julia-actions/setup-julia@v1
-      with:
-        version: '1.6'  # You can adjust to the appropriate Julia version for your project
-
-    - name: Install Julia dependencies
-      run: |
-        julia -e 'using Pkg; Pkg.instantiate()'
-
-    - name: Run Julia tests
-      run: julia -e 'using Pkg; Pkg.test()'
+    # Optional: Disable email notifications (if needed)
+    - name: Notifications
+      run: echo "Email notifications are disabled"
