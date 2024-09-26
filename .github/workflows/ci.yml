@@ -1,34 +1,34 @@
 name: Python CI
 
+# Run CI on push or pull request
 on: [push, pull_request]
 
 jobs:
   build:
-    # Use Ubuntu to run the CI job
     runs-on: ubuntu-latest
 
     strategy:
       matrix:
-        python-version: ["3.7", "3.8", "3.9", "3.10", "3.11"]  # Using modern Python versions
+        python-version: ["3.8", "3.9", "3.10", "3.11"]  # Use modern Python versions
 
     steps:
     # Step 1: Checkout the code
     - name: Checkout code
       uses: actions/checkout@v3
 
-    # Step 2: Set up Python with the specified version
+    # Step 2: Set up Python
     - name: Set up Python
       uses: actions/setup-python@v4
       with:
         python-version: ${{ matrix.python-version }}
 
-    # Step 3: Install dependencies from test_requirements.txt
+    # Step 3: Install dependencies
     - name: Install dependencies
       run: |
         pip install --upgrade pip
         pip install -r test_requirements.txt
 
-    # Step 4: Run tests using pytest and measure coverage
+    # Step 4: Run tests with pytest and coverage
     - name: Run tests
       run: python -m pytest --cov=utils --cov=python --cov=converters test
 
@@ -37,7 +37,3 @@ jobs:
       uses: coverallsapp/github-action@v1
       with:
         github-token: ${{ secrets.GITHUB_TOKEN }}
-
-    # Disable email notifications (optional)
-    - name: Notifications
-      run: echo "Email notifications are disabled"
