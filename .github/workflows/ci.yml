@@ -1,36 +1,35 @@
 name: Python CI
 
-# Run CI on push or pull request
 on: [push, pull_request]
 
 jobs:
   build:
-    # Use the latest version of Ubuntu for the build
+    # Use Ubuntu to run the CI job
     runs-on: ubuntu-latest
 
     strategy:
       matrix:
-        python-version: ["3.7", "3.8", "3.9", "3.10"]  # Use multiple Python versions; Python 3.6 is excluded due to TensorFlow 1.x compatibility issues
+        python-version: ["3.7", "3.8", "3.9", "3.10", "3.11"]  # Using modern Python versions
 
     steps:
-    # Step 1: Checkout the repository code
+    # Step 1: Checkout the code
     - name: Checkout code
       uses: actions/checkout@v3
 
-    # Step 2: Set up Python
+    # Step 2: Set up Python with the specified version
     - name: Set up Python
       uses: actions/setup-python@v4
       with:
         python-version: ${{ matrix.python-version }}
 
-    # Step 3: Install dependencies
+    # Step 3: Install dependencies from test_requirements.txt
     - name: Install dependencies
       run: |
         pip install --upgrade pip
         pip install -r test_requirements.txt
 
-    # Step 4: Run tests with pytest and generate coverage
-    - name: Run tests with pytest
+    # Step 4: Run tests using pytest and measure coverage
+    - name: Run tests
       run: python -m pytest --cov=utils --cov=python --cov=converters test
 
     # Step 5: Upload coverage to Coveralls
@@ -39,6 +38,6 @@ jobs:
       with:
         github-token: ${{ secrets.GITHUB_TOKEN }}
 
-    # Optional: Disable email notifications (if needed)
+    # Disable email notifications (optional)
     - name: Notifications
       run: echo "Email notifications are disabled"
