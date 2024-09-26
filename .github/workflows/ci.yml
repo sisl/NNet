@@ -1,43 +1,33 @@
 name: Python CI
 
-# Trigger the workflow on push or pull request events
 on: [push, pull_request]
 
 jobs:
   build:
-    runs-on: ubuntu-latest  # Run the job on the latest Ubuntu environment
+    runs-on: ubuntu-latest
 
     strategy:
       matrix:
-        python-version: ["3.6", "3.7", "3.8", "3.9", "3.10"]  # Test on multiple Python versions
+        python-version: ["3.7", "3.8", "3.9", "3.10", "3.11"]  # Remove 3.6 from the matrix
 
     steps:
-    # Step 1: Check out the repository code
     - name: Checkout code
       uses: actions/checkout@v3
 
-    # Step 2: Set up Python
     - name: Set up Python
       uses: actions/setup-python@v4
       with:
         python-version: ${{ matrix.python-version }}
 
-    # Step 3: Install dependencies
     - name: Install dependencies
       run: |
         pip install --upgrade pip
         pip install -r test_requirements.txt
 
-    # Step 4: Run tests with pytest and generate coverage
     - name: Run tests
       run: python -m pytest --cov=utils --cov=python --cov=converters test
 
-    # Step 5: Upload coverage to Coveralls
     - name: Upload coverage to Coveralls
       uses: coverallsapp/github-action@v1
       with:
-        github-token: ${{ secrets.GITHUB_TOKEN }}  # Use GitHub's token to authenticate
-
-    # Optional: Disable email notifications
-    - name: Notifications
-      run: echo "Email notifications are disabled"
+        github-token: ${{ secrets.GITHUB_TOKEN }}
