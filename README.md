@@ -1,6 +1,6 @@
 ## NNet Repository
 
-![Build Status](https://github.com/Aero-Spec/NNet/actions/workflows/ci.yml/badge.svg)
+[![Julia CI](https://github.com/Aero-Spec/NNet/actions/workflows/ci.yml/badge.svg)](https://github.com/Aero-Spec/NNet/actions/workflows/ci.yml)
 [![Coverage Status](https://coveralls.io/repos/github/sisl/NNet/badge.svg?branch=master&service=github)](https://coveralls.io/github/sisl/NNet?branch=master)
 
 ### Introduction
