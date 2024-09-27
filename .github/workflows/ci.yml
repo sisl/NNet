@@ -1,6 +1,6 @@
 name: Python CI
 
-# Trigger the workflow on push or pull request
+# Trigger on push and pull requests
 on: [push, pull_request]
 
 jobs:
@@ -9,35 +9,31 @@ jobs:
 
     strategy:
       matrix:
-        python-version: ["3.7", "3.8", "3.9", "3.10", "3.11"]  # You can include 3.6 if required, but it's outdated.
+        python-version: ["3.8", "3.9", "3.10", "3.11"]  # Removed 3.6 and added supported versions
 
     steps:
-    # Step 1: Checkout the repository
+    # Step 1: Checkout code
     - name: Checkout code
-      uses: actions/checkout@v3  # Ensures you get the latest version of your repository
+      uses: actions/checkout@v3
 
-    # Step 2: Set up Python using the matrix of Python versions
+    # Step 2: Set up Python
     - name: Set up Python
-      uses: actions/setup-python@v4  # Updated version for GitHub Actions
+      uses: actions/setup-python@v4
       with:
         python-version: ${{ matrix.python-version }}
 
-    # Step 3: Install dependencies from test_requirements.txt
+    # Step 3: Install dependencies
     - name: Install dependencies
       run: |
         pip install --upgrade pip
         pip install -r test_requirements.txt
 
-    # Step 4: Run tests using pytest with coverage
+    # Step 4: Run tests with pytest and coverage
     - name: Run tests
       run: python -m pytest --cov=utils --cov=python --cov=converters test
 
-    # Step 5: Upload coverage results to Coveralls
+    # Step 5: Upload coverage to Coveralls
     - name: Upload coverage to Coveralls
       uses: coverallsapp/github-action@v1
       with:
-        github-token: ${{ secrets.GITHUB_TOKEN }}  # Ensure the Coveralls token is added in your repository secrets
-
-    # Optional: Disable email notifications (similar to Travis CI)
-    - name: Notifications
-      run: echo "Email notifications are disabled"
+        github-token: ${{ secrets.GITHUB_TOKEN }}
