@@ -25,8 +25,8 @@ jobs:
     - name: Install dependencies
       run: |
         pip install --upgrade pip
-        pip install pytest pytest-cov coveralls  # Ensure pytest and pytest-cov are installed
-        pip install -r test_requirements.txt || true  # Ensure other requirements are installed
+        pip install numpy pytest pytest-cov coveralls  # Install core dependencies explicitly
+        pip install -r test_requirements.txt || true  # Ensure test requirements are installed
 
     # Step 4: Run tests with coverage and ensure output to coverage.xml
     - name: Run tests and generate coverage report
