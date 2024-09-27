@@ -16,10 +16,10 @@ jobs:
       uses: actions/checkout@v3
 
     # Step 2: Set up Python version
-      - name: Set up Python
-        uses: actions/setup-python@v4
-        with:
-          python-version: ${{ matrix.python-version }}
+    - name: Set up Python  # Correct indentation
+      uses: actions/setup-python@v4
+      with:
+        python-version: ${{ matrix.python-version }}
 
     # Step 3: Install dependencies (including onnx)
     - name: Install dependencies
