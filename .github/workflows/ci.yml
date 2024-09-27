@@ -9,29 +9,34 @@ jobs:
     strategy:
       matrix:
         python-version: ["3.8", "3.9", "3.10", "3.11"]
-        tensorflow-version: 
+        tensorflow-version:
           - "2.8.0"   # For Python 3.8
           - "2.14.0"  # For Python 3.9 and above
 
     steps:
+    # Step 1: Checkout the code from the repository
     - name: Checkout repository
       uses: actions/checkout@v3
 
+    # Step 2: Set up Python version
     - name: Set up Python
       uses: actions/setup-python@v4
       with:
         python-version: ${{ matrix.python-version }}
 
+    # Step 3: Install dependencies and TensorFlow version
     - name: Install dependencies
       run: |
         pip install --upgrade pip
         pip install numpy pytest pytest-cov coveralls onnx onnxruntime
         pip install tensorflow==${{ matrix.tensorflow-version }}
 
+    # Step 4: Run tests with coverage and ensure output to coverage.xml
     - name: Run tests and generate coverage report
       run: |
         pytest --cov=utils --cov=python --cov=converters --cov-report xml:coverage.xml
 
+    # Step 5: Upload coverage to Coveralls
     - name: Upload coverage to Coveralls
       uses: coverallsapp/github-action@v1
       with:
