@@ -1,74 +1,11 @@
-name: CI Pipeline
-
-on:
-  push:
-    branches:
-      - master
-  pull_request:
-  workflow_dispatch:
-
-jobs:
-  # Python test job
-  python-test:
-    name: Python ${{ matrix.python-version }} - ${{ matrix.os }} - ${{ github.event_name }}
-    runs-on: ubuntu-latest
-    strategy:
-      fail-fast: false
-      matrix:
-        python-version: ["3.6", "3.7"]  # Python versions to test
-        os: [ubuntu-latest]  # Operating system to test
-    steps:
-      - name: Checkout code
-        uses: actions/checkout@v3
-
-      - name: Set up Python
-        uses: actions/setup-python@v4
-        with:
-          python-version: ${{ matrix.python-version }}
-
-      - name: Install dependencies
-        run: |
-          pip install --upgrade pip
-          pip install -r test_requirements.txt
-
-      - name: Run tests
-        run: python -m pytest --cov=utils --cov=python --cov=converters test
-
-      - name: Upload coverage to Coveralls
-        uses: coverallsapp/github-action@v1
-        with:
-          github-token: ${{ secrets.GITHUB_TOKEN }}
-
-  # Julia test job
-  julia-test:
-    name: Julia ${{ matrix.version }} - ${{ matrix.os }} - ${{ matrix.arch }} - ${{ github.event_name }}
-    runs-on: ubuntu-latest
-    strategy:
-      fail-fast: false
-      matrix:
-        version: ["1.6", "1.7", "1.8"]  # Julia versions to test
-        os: [ubuntu-latest]
-        arch: [x64]
-    steps:
-      - name: Checkout code
-        uses: actions/checkout@v3
-
-      - name: Set up Julia
-        uses: julia-actions/setup-julia@v1
-        with:
-          version: ${{ matrix.version }}
-          arch: ${{ matrix.arch }}
-
-      - name: Build Julia package
-        uses: julia-actions/julia-buildpkg@v1
-
-      - name: Run Julia tests
-        uses: julia-actions/julia-runtest@v1
-
-      - name: Process coverage for Julia
-        uses: julia-actions/julia-processcoverage@v1
-
-      - name: Upload coverage to Codecov
-        uses: codecov/codecov-action@v4
-        env:
-          CODECOV_TOKEN: ${{ secrets.CODECOV_TOKEN }}
+language: python
+python:
+  - "3.6"
+install:
+  - pip install -r test_requirements.txt
+script:
+  - python -m pytest --cov=utils --cov=python --cov=converters test 
+after_success:
+  - coveralls
+notifications:
+  email: false
