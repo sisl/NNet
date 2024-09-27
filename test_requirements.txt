@@ -4,4 +4,4 @@ coveralls
 numpy
 onnx
 onnxruntime
-tensorflow==2.8.0
+tensorflow==2.14.0
