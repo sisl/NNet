@@ -8,7 +8,7 @@ jobs:
 
     strategy:
       matrix:
-        python-version: ["3.7"]
+        python-version: ["3.7", "3.8", "3.9", "3.10", "3.11"]
 
     steps:
     # Step 1: Checkout the code from the repository
@@ -16,17 +16,16 @@ jobs:
       uses: actions/checkout@v3
 
     # Step 2: Set up Python version
-    - name: Set up Python  # Correct indentation
+    - name: Set up Python
       uses: actions/setup-python@v4
       with:
         python-version: ${{ matrix.python-version }}
 
-    # Step 3: Install dependencies (including onnx)
+    # Step 3: Install dependencies
     - name: Install dependencies
       run: |
         pip install --upgrade pip
-        pip install numpy pytest pytest-cov coveralls onnx onnxruntime  # Add onnx explicitly
-        pip install -r test_requirements.txt || true  # Ensure test requirements are installed
+        pip install -r test_requirements.txt
 
     # Step 4: Run tests with coverage and ensure output to coverage.xml
     - name: Run tests and generate coverage report
