@@ -1,4 +1,4 @@
-name: Julia CI
+name: CI
 
 on:
   push:
@@ -10,8 +10,8 @@ on:
 
 jobs:
   test:
-    name: Run Julia Tests
     runs-on: ubuntu-latest
+
     steps:
       - name: Checkout code
         uses: actions/checkout@v3
@@ -19,16 +19,15 @@ jobs:
       - name: Set up Julia
         uses: julia-actions/setup-julia@v1
         with:
-          version: '1.9'
+          version: '1.9'  # Specify the version of Julia you want to use
 
-      - name: Install Dependencies
-        run: |
-          julia -e 'using Pkg; Pkg.instantiate()'
+      - name: Install dependencies
+        run: julia --project -e 'using Pkg; Pkg.instantiate()'
 
-      - name: Run Tests
-        run: |
-          julia -e 'using Pkg; Pkg.test()'
+      - name: Run tests
+        run: julia --project -e 'using Pkg; Pkg.test()'
 
       - name: Upload coverage results
-        run: |
-          julia -e 'using Pkg; Pkg.add("Coverage"); using Coverage; Codecov.submit(process_folder())'
+        run: julia --project -e 'using Pkg; Pkg.add("Coverage"); using Coverage; Codecov.submit(process_folder())'
+        env:
+          CODECOV_TOKEN: ${{ secrets.CODECOV_TOKEN }}
