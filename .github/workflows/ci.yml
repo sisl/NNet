@@ -9,6 +9,9 @@ jobs:
     strategy:
       matrix:
         python-version: ["3.8", "3.9", "3.10", "3.11"]
+        tensorflow-version: 
+          - "2.8.0"   # For Python 3.8
+          - "2.14.0"  # For Python 3.9 and above
 
     steps:
     - name: Checkout repository
@@ -22,7 +25,8 @@ jobs:
     - name: Install dependencies
       run: |
         pip install --upgrade pip
-        pip install -r test_requirements.txt
+        pip install numpy pytest pytest-cov coveralls onnx onnxruntime
+        pip install tensorflow==${{ matrix.tensorflow-version }}
 
     - name: Run tests and generate coverage report
       run: |
