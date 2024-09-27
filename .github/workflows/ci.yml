@@ -8,7 +8,7 @@ jobs:
 
     strategy:
       matrix:
-        python-version: ["3.7", "3.8", "3.9", "3.10", "3.11"]
+        python-version: ["3.7", "3.8", "3.9", "3.10", "3.11"]  # Ensure these Python versions work with the dependencies
 
     steps:
     # Step 1: Checkout the code from the repository
@@ -21,10 +21,11 @@ jobs:
       with:
         python-version: ${{ matrix.python-version }}
 
-    # Step 3: Install dependencies
+    # Step 3: Install dependencies (including specific ones like TensorFlow, ONNX)
     - name: Install dependencies
       run: |
         pip install --upgrade pip
+        pip install pytest pytest-cov coveralls onnx onnxruntime tensorflow==2.14.0  # Add key libraries explicitly
         pip install -r test_requirements.txt
 
     # Step 4: Run tests with coverage and ensure output to coverage.xml
@@ -37,4 +38,4 @@ jobs:
       uses: coverallsapp/github-action@v1
       with:
         github-token: ${{ secrets.GITHUB_TOKEN }}
-        path-to-lcov: coverage.xml
+        path-to-lcov: coverage.xml  # Ensure this file is generated correctly
