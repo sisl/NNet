@@ -4,4 +4,4 @@ coveralls
 numpy
 onnx
 onnxruntime
-tensorflow==2.7.0  # or a compatible version for Python 3.7
+tensorflow==2.14.0 
