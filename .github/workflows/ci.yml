@@ -8,7 +8,7 @@ jobs:
 
     strategy:
       matrix:
-        python-version: ["3.7"]  # Older Python version to avoid compatibility issues
+        python-version: ["3.7"]
 
     steps:
     # Step 1: Checkout the code from the repository
@@ -25,17 +25,16 @@ jobs:
     - name: Install dependencies
       run: |
         pip install --upgrade pip
-        pip install -r test_requirements.txt || true  # Continue even if some dependencies fail to install
+        pip install -r test_requirements.txt || true
 
-    # Step 4: Run tests with coverage and output as XML for Coveralls
-    - name: Run tests
+    # Step 4: Run tests with coverage and ensure output to coverage.xml
+    - name: Run tests and generate coverage report
       run: |
-        pytest --cov=utils --cov=python --cov=converters --cov-report xml  # Generates coverage.xml
-      continue-on-error: true  # Do not fail the workflow if tests fail
+        pytest --cov=utils --cov=python --cov=converters --cov-report xml:coverage.xml
 
     # Step 5: Upload coverage to Coveralls
     - name: Upload coverage to Coveralls
       uses: coverallsapp/github-action@v1
       with:
-        github-token: ${{ secrets.GITHUB_TOKEN }}  # Ensure the Coveralls token is added in your repository secrets
-        path-to-lcov: coverage.xml  # We now refer to coverage.xml instead of lcov.info
+        github-token: ${{ secrets.GITHUB_TOKEN }}
+        path-to-lcov: coverage.xml
