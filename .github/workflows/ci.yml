@@ -1,11 +1,43 @@
-language: python
-python:
-  - "3.6"
-install:
-  - pip install -r test_requirements.txt
-script:
-  - python -m pytest --cov=utils --cov=python --cov=converters test 
-after_success:
-  - coveralls
-notifications:
-  email: false
+name: Python CI
+
+# Trigger the workflow on push or pull request
+on: [push, pull_request]
+
+jobs:
+  build:
+    runs-on: ubuntu-latest
+
+    strategy:
+      matrix:
+        python-version: ["3.7", "3.8", "3.9", "3.10", "3.11"]  # You can include 3.6 if required, but it's outdated.
+
+    steps:
+    # Step 1: Checkout the repository
+    - name: Checkout code
+      uses: actions/checkout@v3  # Ensures you get the latest version of your repository
+
+    # Step 2: Set up Python using the matrix of Python versions
+    - name: Set up Python
+      uses: actions/setup-python@v4  # Updated version for GitHub Actions
+      with:
+        python-version: ${{ matrix.python-version }}
+
+    # Step 3: Install dependencies from test_requirements.txt
+    - name: Install dependencies
+      run: |
+        pip install --upgrade pip
+        pip install -r test_requirements.txt
+
+    # Step 4: Run tests using pytest with coverage
+    - name: Run tests
+      run: python -m pytest --cov=utils --cov=python --cov=converters test
+
+    # Step 5: Upload coverage results to Coveralls
+    - name: Upload coverage to Coveralls
+      uses: coverallsapp/github-action@v1
+      with:
+        github-token: ${{ secrets.GITHUB_TOKEN }}  # Ensure the Coveralls token is added in your repository secrets
+
+    # Optional: Disable email notifications (similar to Travis CI)
+    - name: Notifications
+      run: echo "Email notifications are disabled"
