@@ -1,5 +1,5 @@
 name: Julia CI
- 
+
 on:
   push:
     branches:
@@ -10,30 +10,25 @@ on:
 
 jobs:
   test:
+    name: Run Julia Tests
     runs-on: ubuntu-latest
-    strategy:
-      matrix:
-        julia-version: [1.7, 1.8, 1.9]  # Test against multiple Julia versions
     steps:
-      - name: Checkout repository
+      - name: Checkout code
         uses: actions/checkout@v3
 
       - name: Set up Julia
         uses: julia-actions/setup-julia@v1
         with:
-          version: ${{ matrix.julia-version }}
+          version: '1.9'
 
-      - name: Install dependencies
-        run: julia --project=@. -e 'using Pkg; Pkg.instantiate()'
+      - name: Install Dependencies
+        run: |
+          julia -e 'using Pkg; Pkg.instantiate()'
 
-      - name: Run tests
-        run: julia --project=@. -e 'using Pkg; Pkg.test()'
+      - name: Run Tests
+        run: |
+          julia -e 'using Pkg; Pkg.test()'
 
       - name: Upload coverage results
-        if: success()
-        run: julia --project=@. -e 'using Pkg; Pkg.add("Coverage"); using Coverage; Codecov.submit(process_folder())'
-
-      - name: Show status badge
-        if: success()
-        run: echo "All tests passed"
-
+        run: |
+          julia -e 'using Pkg; Pkg.add("Coverage"); using Coverage; Codecov.submit(process_folder())'
