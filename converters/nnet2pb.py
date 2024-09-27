@@ -1,7 +1,6 @@
 import tensorflow as tf
 import numpy as np
 import sys
-from tensorflow.python.framework import graph_util
 import os
 os.environ["CUDA_VISIBLE_DEVICES"] = "-1"
 from NNet.utils.readNNet import readNNet
@@ -26,15 +25,12 @@ def nnet2pb(nnetFile, pbFile="", output_node_names="y_out", normalizeNetwork=Fal
     if pbFile == "":
         pbFile = nnetFile[:-4] + 'pb'
     
-    # Use TensorFlow 1.x compatibility mode
-    tf.compat.v1.reset_default_graph()
-    sess = tf.compat.v1.Session()
-
-    # Define model and assign values to tensors
-    currentTensor = tf.compat.v1.placeholder(tf.float32, [None, inputSize], name='input')
+    # Define the model with layers in TensorFlow 2.x style
+    inputs = tf.keras.Input(shape=(inputSize,), name='input')
+    currentTensor = inputs
     for i in range(len(weights)):
-        W = tf.compat.v1.get_variable("W%d" % i, shape=weights[i].T.shape)
-        b = tf.compat.v1.get_variable("b%d" % i, shape=biases[i].shape)
+        W = tf.constant(weights[i].T, dtype=tf.float32)
+        b = tf.constant(biases[i], dtype=tf.float32)
         
         # Use ReLU for all but the last operation, and name last operation to desired name
         if i != len(weights) - 1:
@@ -42,34 +38,12 @@ def nnet2pb(nnetFile, pbFile="", output_node_names="y_out", normalizeNetwork=Fal
         else:
             currentTensor = tf.add(tf.matmul(currentTensor, W), b, name=output_node_names)
 
-        # Assign values to tensors
-        sess.run(tf.compat.v1.assign(W, weights[i].T))
-        sess.run(tf.compat.v1.assign(b, biases[i]))
-    
-    # Freeze the graph to write the pb file
-    freeze_graph(sess, pbFile, output_node_names)
-    
-def freeze_graph(sess, output_graph_name, output_node_names):
-    '''
-    Given a session with a graph loaded, save only the variables needed for evaluation to a .pb file
-    
-    Args:
-        sess (tf.Session): TensorFlow session where graph is defined
-        output_graph_name (str): Name of the file for writing frozen graph
-        output_node_names (str): Name of the output operation in the graph, comma separated if there are multiple output operations
-    '''
-    
-    input_graph_def = tf.compat.v1.get_default_graph().as_graph_def()
-    output_graph_def = graph_util.convert_variables_to_constants(
-        sess,                        # The session is used to retrieve the weights
-        input_graph_def,             # The graph_def is used to retrieve the nodes 
-        output_node_names.split(",") # The output node names are used to select the useful nodes
-    ) 
+    # Create the model
+    model = tf.keras.Model(inputs=inputs, outputs=currentTensor)
 
-    # Finally, serialize and dump the output graph to the file
-    with tf.io.gfile.GFile(output_graph_name, "wb") as f:
-        f.write(output_graph_def.SerializeToString())
-  
+    # Save the model to a .pb file
+    tf.saved_model.save(model, pbFile)
+
 if __name__ == '__main__':
     # Read user inputs and run nnet2pb function
     if len(sys.argv) > 1:
