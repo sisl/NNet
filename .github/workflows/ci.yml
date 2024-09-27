@@ -1,39 +1,74 @@
-name: Python CI
+name: CI Pipeline
 
-# Run CI on push or pull request
-on: [push, pull_request]
+on:
+  push:
+    branches:
+      - main
+  pull_request:
+  workflow_dispatch:
 
 jobs:
-  build:
+  # Python test job
+  python-test:
+    name: Python ${{ matrix.python-version }} - ${{ matrix.os }} - ${{ github.event_name }}
     runs-on: ubuntu-latest
-
     strategy:
+      fail-fast: false
       matrix:
-        python-version: ["3.8", "3.9", "3.10", "3.11"]  # Use modern Python versions
-
+        python-version: ["3.8", "3.9", "3.10", "3.11"]  # Python versions to test
+        os: [ubuntu-latest]  # Operating system to test
     steps:
-    # Step 1: Checkout the code
-    - name: Checkout code
-      uses: actions/checkout@v3
+      - name: Checkout code
+        uses: actions/checkout@v3
 
-    # Step 2: Set up Python
-    - name: Set up Python
-      uses: actions/setup-python@v4
-      with:
-        python-version: ${{ matrix.python-version }}
+      - name: Set up Python
+        uses: actions/setup-python@v4
+        with:
+          python-version: ${{ matrix.python-version }}
 
-    # Step 3: Install dependencies
-    - name: Install dependencies
-      run: |
-        pip install --upgrade pip
-        pip install -r test_requirements.txt
+      - name: Install dependencies
+        run: |
+          pip install --upgrade pip
+          pip install -r test_requirements.txt
 
-    # Step 4: Run tests with pytest and coverage
-    - name: Run tests
-      run: python -m pytest --cov=utils --cov=python --cov=converters test
+      - name: Run tests
+        run: python -m pytest --cov=utils --cov=python --cov=converters test
 
-    # Step 5: Upload coverage to Coveralls
-    - name: Upload coverage to Coveralls
-      uses: coverallsapp/github-action@v1
-      with:
-        github-token: ${{ secrets.GITHUB_TOKEN }}
+      - name: Upload coverage to Coveralls
+        uses: coverallsapp/github-action@v1
+        with:
+          github-token: ${{ secrets.GITHUB_TOKEN }}
+
+  # Julia test job
+  julia-test:
+    name: Julia ${{ matrix.version }} - ${{ matrix.os }} - ${{ matrix.arch }} - ${{ github.event_name }}
+    runs-on: ubuntu-latest
+    strategy:
+      fail-fast: false
+      matrix:
+        version: ["1.6", "1.7", "1.8"]  # Julia versions to test
+        os: [ubuntu-latest]
+        arch: [x64]
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v3
+
+      - name: Set up Julia
+        uses: julia-actions/setup-julia@v1
+        with:
+          version: ${{ matrix.version }}
+          arch: ${{ matrix.arch }}
+
+      - name: Build Julia package
+        uses: julia-actions/julia-buildpkg@v1
+
+      - name: Run Julia tests
+        uses: julia-actions/julia-runtest@v1
+
+      - name: Process coverage for Julia
+        uses: julia-actions/julia-processcoverage@v1
+
+      - name: Upload coverage to Codecov
+        uses: codecov/codecov-action@v4
+        env:
+          CODECOV_TOKEN: ${{ secrets.CODECOV_TOKEN }}
