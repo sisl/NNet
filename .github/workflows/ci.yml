@@ -1,0 +1,75 @@
+name: CI
+
+on:
+  push:
+    branches:
+      - main
+  pull_request:
+    branches:
+      - main
+
+jobs:
+  python-build:
+    name: Python Tests
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Set up Python 3.x
+        uses: actions/setup-python@v3
+        with:
+          python-version: 3.10
+
+      - name: Install Dependencies
+        run: |
+          pip install -r test_requirements.txt
+          pip install pytest pytest-cov
+
+      - name: Run Tests
+        run: |
+          pytest --cov=converters --cov=python --cov-report xml
+
+      - name: Upload Coverage to Coveralls
+        run: |
+          pip install coveralls
+          coveralls
+
+  julia-build:
+    name: Julia Tests
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Set up Julia
+        uses: julia-actions/setup-julia@v1
+        with:
+          version: '1.8'
+
+      - name: Install Dependencies
+        run: |
+          julia -e 'import Pkg; Pkg.instantiate()'
+
+      - name: Run Julia Tests
+        run: |
+          julia -e 'import Pkg; Pkg.test()'
+
+  cpp-build:
+    name: C++ Tests
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Install dependencies
+        run: sudo apt-get install g++ cmake
+
+      - name: Build C++ code
+        run: |
+          mkdir -p build
+          cd build
+          cmake ..
+          make
+
+      - name: Run C++ Tests
+        run: |
+          cd build
+          ./run_tests   # Assuming there is a test binary
