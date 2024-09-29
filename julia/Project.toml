@@ -1,6 +1,0 @@
-name = "NNet"
-uuid = "12345678-abcd-efgh-ijkl-9876543210ab"  # Generate a UUID for the package
-version = "0.1.0"
-
-[deps]
-Test = "8dfed614-68b0-599c-8b60-60599bfbac8c" # Test dependency for running tests
