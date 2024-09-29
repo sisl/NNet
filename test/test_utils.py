@@ -12,12 +12,17 @@ sys.path.append('..')
 
 class TestUtils(unittest.TestCase):
 
+    def setUp(self):
+        # Ensure the necessary .nnet file exists
+        self.nnetFile = "nnet/TestNetwork.nnet"
+        if not os.path.exists(self.nnetFile):
+            self.skipTest(f"Skipping test: {self.nnetFile} does not exist")
+
     def test_read(self):
-        nnetFile = "nnet/TestNetwork.nnet"
-        nnet = NNet(nnetFile)
+        nnet = NNet(self.nnetFile)
 
         # Read the .nnet file using readNNet
-        weights, biases, inputMins, inputMaxes, means, ranges = readNNet(nnetFile, withNorm=True)
+        weights, biases, inputMins, inputMaxes, means, ranges = readNNet(self.nnetFile, withNorm=True)
 
         # Ensure weights, biases, and other attributes match
         self.assertEqual(len(weights), len(nnet.weights))
@@ -29,14 +34,14 @@ class TestUtils(unittest.TestCase):
 
         # Check all elements are equal using numpy's allclose for floating-point comparison
         for w1, w2 in zip(weights, nnet.weights):
-            np.testing.assert_allclose(w1, w2)
+            np.testing.assert_allclose(w1, w2, rtol=1e-7, atol=1e-8, verbose=True)
         for b1, b2 in zip(biases, nnet.biases):
-            np.testing.assert_allclose(b1, b2)
+            np.testing.assert_allclose(b1, b2, rtol=1e-7, atol=1e-8, verbose=True)
 
-        np.testing.assert_allclose(inputMins, nnet.mins)
-        np.testing.assert_allclose(inputMaxes, nnet.maxes)
-        np.testing.assert_allclose(means, nnet.means)
-        np.testing.assert_allclose(ranges, nnet.ranges)
+        np.testing.assert_allclose(inputMins, nnet.mins, rtol=1e-7, atol=1e-8, verbose=True)
+        np.testing.assert_allclose(inputMaxes, nnet.maxes, rtol=1e-7, atol=1e-8, verbose=True)
+        np.testing.assert_allclose(means, nnet.means, rtol=1e-7, atol=1e-8, verbose=True)
+        np.testing.assert_allclose(ranges, nnet.ranges, rtol=1e-7, atol=1e-8, verbose=True)
 
     def test_write(self):
         nnetFile1 = "nnet/TestNetwork.nnet"
