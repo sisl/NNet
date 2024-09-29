@@ -3,7 +3,7 @@ import numpy as np
 import sys
 from tensorflow.python.framework import graph_util
 import os
-os.environ["CUDA_VISIBLE_DEVICES"] = "-1"
+os.environ["CUDA_VISIBLE_DEVICES"] = "-1"  # Force CPU usage
 from NNet.utils.readNNet import readNNet
 from NNet.utils.normalizeNNet import normalizeNNet
 
@@ -12,79 +12,85 @@ tf.compat.v1.disable_eager_execution()
 
 def nnet2pb(nnetFile, pbFile="", output_node_names="y_out", normalizeNetwork=False):
     """
-    Read a .nnet file and create a frozen Tensorflow graph and save to a .pb file
+    Convert a .nnet file into a frozen TensorFlow graph and save it to a .pb file.
 
     Args:
-        nnetFile (str): A .nnet file to convert to Tensorflow format
-        pbFile (str, optional): Name for the created .pb file. Default: ""
-        output_node_names (str, optional): Name of the final operation in the Tensorflow graph. Default: "y_out"
+        nnetFile (str): Path to the .nnet file to convert.
+        pbFile (str, optional): Name for the created .pb file. Default: generated from input filename.
+        output_node_names (str, optional): Name of the final operation in the TensorFlow graph. Default is "y_out".
+        normalizeNetwork (bool, optional): If True, normalize the network. Default is False.
     """
-    if normalizeNetwork:
-        weights, biases = normalizeNNet(nnetFile)
-    else:
-        weights, biases = readNNet(nnetFile)
-    
+    try:
+        if normalizeNetwork:
+            weights, biases = normalizeNNet(nnetFile)
+        else:
+            weights, biases = readNNet(nnetFile)
+    except Exception as e:
+        print(f"Error reading or normalizing NNet file: {e}")
+        return
+
     inputSize = weights[0].shape[1]
 
-    # Default pb filename if none are specified
-    if pbFile == "":
-        pbFile = nnetFile[:-4] + 'pb'
+    # Default pb filename if none is specified
+    if not pbFile:
+        pbFile = f"{nnetFile[:-4]}.pb"
 
-    # Reset TensorFlow and start a session using only CPUs
+    # Reset TensorFlow graph and initialize session
     tf.compat.v1.reset_default_graph()
     sess = tf.compat.v1.Session()
 
-    # Define model and assign values to tensors
+    # Define the model structure and assign values to tensors
     currentTensor = tf.compat.v1.placeholder(tf.float32, [None, inputSize], name='input')
 
-    for i in range(len(weights)):
-        W = tf.compat.v1.get_variable(f"W{i}", shape=weights[i].T.shape)
-        b = tf.compat.v1.get_variable(f"b{i}", shape=biases[i].shape)
+    for i, (W_value, b_value) in enumerate(zip(weights, biases)):
+        W = tf.compat.v1.get_variable(f"W{i}", shape=W_value.T.shape)
+        b = tf.compat.v1.get_variable(f"b{i}", shape=b_value.shape)
 
-        # Use ReLU for all but the last operation, name the last operation to desired name
+        # Apply ReLU activation except for the last layer
         if i != len(weights) - 1:
             currentTensor = tf.nn.relu(tf.matmul(currentTensor, W) + b)
         else:
             currentTensor = tf.add(tf.matmul(currentTensor, W), b, name=output_node_names)
 
-        # Assign values to tensors
-        sess.run(tf.compat.v1.assign(W, weights[i].T))
-        sess.run(tf.compat.v1.assign(b, biases[i]))
+        # Assign values to the variables
+        sess.run(tf.compat.v1.assign(W, W_value.T))
+        sess.run(tf.compat.v1.assign(b, b_value))
 
-    # Freeze the graph and write the .pb file
-    freeze_graph(sess, pbFile, output_node_names)
+    # Freeze the graph and save the .pb file
+    try:
+        freeze_graph(sess, pbFile, output_node_names)
+        print(f"Successfully saved TensorFlow frozen graph to {pbFile}")
+    except Exception as e:
+        print(f"Error freezing or saving the graph: {e}")
 
 def freeze_graph(sess, output_graph_name, output_node_names):
     """
-    Given a session with a graph loaded, save only the variables needed for evaluation to a .pb file
+    Save only the necessary variables for evaluation to a .pb file.
 
     Args:
-        sess (tf.compat.v1.Session): Tensorflow session where graph is defined
-        output_graph_name (str): Name of file for writing frozen graph
-        output_node_names (str): Name of the output operation in the graph, comma-separated if there are multiple output operations
+        sess (tf.compat.v1.Session): The TensorFlow session where the graph is defined.
+        output_graph_name (str): The name of the file to save the frozen graph.
+        output_node_names (str): Name(s) of the output operation(s) in the graph.
     """
+    try:
+        input_graph_def = tf.compat.v1.get_default_graph().as_graph_def()
+        output_graph_def = graph_util.convert_variables_to_constants(
+            sess, input_graph_def, output_node_names.split(",")
+        )
 
-    input_graph_def = tf.compat.v1.get_default_graph().as_graph_def()
-    output_graph_def = graph_util.convert_variables_to_constants(
-        sess,                        # The session is used to retrieve the weights
-        input_graph_def,             # The graph_def is used to retrieve the nodes 
-        output_node_names.split(",") # The output node names are used to select the useful nodes
-    )
-
-    # Serialize and dump the output graph to the file
-    with tf.io.gfile.GFile(output_graph_name, "wb") as f:
-        f.write(output_graph_def.SerializeToString())
+        # Serialize and save the frozen graph
+        with tf.io.gfile.GFile(output_graph_name, "wb") as f:
+            f.write(output_graph_def.SerializeToString())
+    except Exception as e:
+        print(f"Error during graph freezing or file writing: {e}")
+        raise
 
 if __name__ == '__main__':
-    # Read user inputs and run the nnet2pb function
+    # Read user inputs and run nnet2pb function
     if len(sys.argv) > 1:
         nnetFile = sys.argv[1]
-        pbFile = ""
-        output_node_names = "y_out"
-        if len(sys.argv) > 2:
-            pbFile = sys.argv[2]
-        if len(sys.argv) > 3:
-            output_node_names = sys.argv[3]
+        pbFile = sys.argv[2] if len(sys.argv) > 2 else ""
+        output_node_names = sys.argv[3] if len(sys.argv) > 3 else "y_out"
         nnet2pb(nnetFile, pbFile, output_node_names)
     else:
-        print("Need to specify which .nnet file to convert to Tensorflow frozen graph!")
+        print("Error: Need to specify which .nnet file to convert to TensorFlow frozen graph!")
