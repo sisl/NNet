@@ -6,7 +6,7 @@ os.environ["CUDA_VISIBLE_DEVICES"] = "-1"
 import tensorflow as tf
 from NNet.utils.writeNNet import writeNNet
 
-# Enable TensorFlow 1.x compatibility in TensorFlow 2.x
+# Enable TensorFlow 1.x functionality in TensorFlow 2.x
 tf.compat.v1.disable_eager_execution()
 
 def processGraph(op, input_op, foundInputFlag, weights, biases):
@@ -14,28 +14,27 @@ def processGraph(op, input_op, foundInputFlag, weights, biases):
     Recursively search the graph and populate the weight and bias lists.
     
     Args:
-        op (tf.op): Current tensorflow operation in search.
-        input_op (tf.op): Tensorflow operation that we want to be the network input.
-        foundInputFlag (bool): Flag turned to true when the input operation is found.
-        weights (list): List of weights in network.
-        biases (list): List of biases in network.
+        op (tf.Operation): Current TensorFlow operation in search.
+        input_op (tf.Operation): TensorFlow operation that we want to be the network input.
+        foundInputFlag (bool): Flag that is set to True when the input operation is found.
+        weights (list): List of weights in the network.
+        biases (list): List of biases in the network.
         
     Returns:
-        (bool): Updated foundInputFlag.
+        bool: Updated foundInputFlag.
     """
     if op.node_def.op == 'Const':
         # If constant, extract values and add to weight or bias list depending on shape
         param = tensor_util.MakeNdarray(op.node_def.attr['value'].tensor)
         if len(param.shape) > 1:
-            weights += [param.T]
+            weights.append(param.T)
         else:
-            biases += [param]
-
-    # Search the inputs to this operation as well
+            biases.append(param)
+    
+    # Search the inputs to this operation
     input_ops = [i.op for i in op.inputs]
     for i in input_ops:
-        # If the operation name is not the given input_op name, recurse. Otherwise, we have found the input operation
-        if not i.name == input_op.name:
+        if i.name != input_op.name:
             foundInputFlag = processGraph(i, input_op, foundInputFlag, weights, biases)
         else:
             foundInputFlag = True
@@ -48,85 +47,86 @@ def pb2nnet(pbFile, inputMins=None, inputMaxes=None, means=None, ranges=None, nn
     Args:
         pbFile (str): Path to the frozen graph .pb file or SavedModel folder.
         inputMins (list, optional): Minimum values for each neural network input.
-        inputMaxes (list, optional): Maximum values for each neural network output.
-        means (list, optional): Mean values for inputs and output for normalization.
-        ranges (list, optional): Range values for inputs and output for normalization.
-        inputName (str, optional): Name of operation corresponding to input.
-        outputName (str, optional): Name of operation corresponding to output.
-        savedModel (bool, optional): If True, load SavedModel. If False, load frozen graph. Default is False.
-        savedModelTags (list, optional): If loading a SavedModel, specify tags used. Default is an empty list.
+        inputMaxes (list, optional): Maximum values for each neural network input.
+        means (list, optional): Mean value for each input and output (for normalization).
+        ranges (list, optional): Range value for each input and output (for normalization).
+        nnetFile (str, optional): Name of the output .nnet file. Defaults to the name of the .pb file.
+        inputName (str, optional): Name of the input operation.
+        outputName (str, optional): Name of the output operation.
+        savedModel (bool, optional): If True, load SavedModel. If False, load a frozen graph. Default is False.
+        savedModelTags (list, optional): Tags to use when loading a SavedModel.
     """
-    
-    if nnetFile == "":
+    if not nnetFile:
         nnetFile = f"{pbFile[:-2]}nnet"
 
     if savedModel:
         # Load SavedModel
         sess = tf.compat.v1.Session()
-        tf.compat.v1.saved_model.loader.load(sess, savedModelTags, pbFile)
-        
-        # Simplify graph using outputName, which must be specified for SavedModel
-        simp_graph_def = graph_util.convert_variables_to_constants(
-            sess, sess.graph.as_graph_def(), [outputName]
-        )
-        with tf.Graph().as_default() as graph:
+        try:
+            tf.compat.v1.saved_model.loader.load(sess, savedModelTags, pbFile)
+        except Exception as e:
+            print(f"Error loading SavedModel: {e}")
+            return
+
+        # Simplify the graph
+        simp_graph_def = graph_util.convert_variables_to_constants(sess, sess.graph.as_graph_def(), [outputName])
+        with tf.compat.v1.Graph().as_default() as graph:
             tf.import_graph_def(simp_graph_def, name="")
         sess = tf.compat.v1.Session(graph=graph)
-    
     else:
         # Load frozen graph from protobuf
-        with tf.compat.v1.gfile.GFile(pbFile, "rb") as f:
-            graph_def = tf.compat.v1.GraphDef()
-            graph_def.ParseFromString(f.read())
-        with tf.Graph().as_default() as graph:
-            tf.import_graph_def(graph_def, name="")
-        sess = tf.compat.v1.Session(graph=graph)
+        try:
+            with tf.compat.v1.gfile.GFile(pbFile, "rb") as f:
+                graph_def = tf.compat.v1.GraphDef()
+                graph_def.ParseFromString(f.read())
+            with tf.compat.v1.Graph().as_default() as graph:
+                tf.import_graph_def(graph_def, name="")
+            sess = tf.compat.v1.Session(graph=graph)
+        except Exception as e:
+            print(f"Error loading .pb file: {e}")
+            return
 
     # Find operations corresponding to input and output
-    if inputName:
-        inputOp = sess.graph.get_operation_by_name(inputName)
-    else:
-        ops = sess.graph.get_operations()
-        placeholders = [x for x in ops if x.node_def.op == 'Placeholder']
-        assert len(placeholders) == 1, "Multiple placeholders found, specify inputName."
-        inputOp = placeholders[0]
+    try:
+        inputOp = sess.graph.get_operation_by_name(inputName) if inputName else [
+            x for x in sess.graph.get_operations() if x.node_def.op == 'Placeholder'][0]
+        outputOp = sess.graph.get_operation_by_name(outputName) if outputName else sess.graph.get_operations()[-1]
+    except Exception as e:
+        print(f"Error finding input or output operations: {e}")
+        return
 
-    if outputName:
-        outputOp = sess.graph.get_operation_by_name(outputName)
-    else:
-        outputOp = sess.graph.get_operations()[-1]
-
-    # Recursively search for weights and bias parameters
-    weights = []
-    biases = []
+    # Recursively search for weights and biases
+    weights, biases = [], []
     foundInputFlag = processGraph(outputOp, inputOp, False, weights, biases)
-
+    
     inputShape = inputOp.outputs[0].shape.as_list()
     assert inputShape[0] is None
     assert inputShape[1] > 0
-    assert len(inputShape) == 2
     inputSize = inputShape[1]
 
     if foundInputFlag:
         # Default values for input bounds and normalization constants
         if inputMins is None:
-            inputMins = inputSize * [np.finfo(np.float32).min]
+            inputMins = [np.finfo(np.float32).min] * inputSize
         if inputMaxes is None:
-            inputMaxes = inputSize * [np.finfo(np.float32).max]
+            inputMaxes = [np.finfo(np.float32).max] * inputSize
         if means is None:
-            means = (inputSize + 1) * [0.0]
+            means = [0.0] * (inputSize + 1)
         if ranges is None:
-            ranges = (inputSize + 1) * [1.0]
+            ranges = [1.0] * (inputSize + 1)
 
         # Write NNet file
-        writeNNet(weights, biases, inputMins, inputMaxes, means, ranges, nnetFile)
+        try:
+            writeNNet(weights, biases, inputMins, inputMaxes, means, ranges, nnetFile)
+            print(f"Converted TensorFlow model at {pbFile} to NNet model at {nnetFile}")
+        except Exception as e:
+            print(f"Error writing NNet file: {e}")
     else:
-        print(f"Could not find the given input in graph: {inputOp.name}")
+        print(f"Could not find the input operation in the graph: {inputOp.name}")
 
 if __name__ == '__main__':
-    # Read user inputs and run pb2nnet function
     if len(sys.argv) > 1:
-        print("WARNING: Using default values for input bounds and normalization constants")
+        print("WARNING: Using the default values of input bounds and normalization constants")
         pbFile = sys.argv[1]
         pb2nnet(pbFile)
     else:
