@@ -4,4 +4,4 @@ coveralls==3.3.1
 numpy==1.23.5
 onnx==1.14.0
 onnxruntime==1.15.0
-tensorflow==1.15.2  # Consider upgrading to 2.x if possible
+tensorflow==2.13.0  
