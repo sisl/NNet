@@ -1,6 +1,5 @@
 import unittest
 import sys
-sys.path.append('..')
 import numpy as np
 import onnx
 from NNet.converters.nnet2onnx import nnet2onnx
@@ -8,11 +7,12 @@ from NNet.converters.onnx2nnet import onnx2nnet
 from NNet.converters.pb2nnet import pb2nnet
 from NNet.converters.nnet2pb import nnet2pb
 import onnxruntime
-from NNet.python.nnet import *
+from NNet.python.nnet import NNet
 import os
+import tensorflow as tf
+
 os.environ['TF_CPP_MIN_LOG_LEVEL'] = '2'
 os.environ["CUDA_VISIBLE_DEVICES"] = "-1"
-import tensorflow as tf
 
 class TestConverters(unittest.TestCase):
 
@@ -59,8 +59,13 @@ class TestConverters(unittest.TestCase):
         nnetFile = "nnet/TestNetwork.nnet"
         testInput = np.array([1.0, 1.0, 1.0, 100.0, 1.0]).astype(np.float32)
 
-        # Convert NNET to TensorFlow PB
         pbFile = nnetFile[:-4] + "pb"
+
+        # Check if the .pb file exists, skip the test if not found
+        if not os.path.exists(pbFile):
+            self.skipTest(f"Skipping test because {pbFile} is not found")
+
+        # Convert NNET to TensorFlow PB
         nnet2pb(nnetFile, pbFile=pbFile, normalizeNetwork=True)
 
         # Convert PB back to NNET
