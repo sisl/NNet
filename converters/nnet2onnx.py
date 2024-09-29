@@ -7,27 +7,22 @@ from NNet.utils.normalizeNNet import normalizeNNet
 
 def nnet2onnx(nnetFile, onnxFile="", outputVar="y_out", inputVar="X", normalizeNetwork=False):
     """
-    Convert a .nnet file to onnx format.
-    
+    Convert a .nnet file to ONNX format.
+
     Args:
-        nnetFile: (string) .nnet file to convert to ONNX.
-        onnxFile: (string) Optional, name for the created .onnx file.
-        outputVar: (string) Optional, name of the output variable in ONNX.
-        inputVar: (string) Optional, name of the input variable in ONNX.
-        normalizeNetwork: (bool) If true, adapt the network weights and biases so that 
-                                 networks and inputs do not need to be normalized. Default is False.
+        nnetFile (str): .nnet file to convert to ONNX.
+        onnxFile (str, optional): Name for the created .onnx file. Defaults to the name of the input file with an .onnx extension.
+        outputVar (str, optional): Name of the output variable in ONNX. Default is "y_out".
+        inputVar (str, optional): Name of the input variable in ONNX. Default is "X".
+        normalizeNetwork (bool, optional): If True, adapt the network weights and biases so that networks and inputs do not need to be normalized. Default is False.
     """
     try:
-        # Normalize the network or read it
         if normalizeNetwork:
             weights, biases = normalizeNNet(nnetFile)
         else:
             weights, biases = readNNet(nnetFile)
-    except FileNotFoundError:
-        print(f"Error: Could not find or read the .nnet file: {nnetFile}")
-        return
     except Exception as e:
-        print(f"Error processing the .nnet file: {str(e)}")
+        print(f"Error reading NNet file: {e}")
         return
 
     inputSize = weights[0].shape[1]
@@ -38,7 +33,7 @@ def nnet2onnx(nnetFile, onnxFile="", outputVar="y_out", inputVar="X", normalizeN
     if not onnxFile:
         onnxFile = f"{nnetFile[:-4]}.onnx"
 
-    # Initialize graph
+    # Initialize graph inputs and outputs
     inputs = [helper.make_tensor_value_info(inputVar, TensorProto.FLOAT, [inputSize])]
     outputs = [helper.make_tensor_value_info(outputVar, TensorProto.FLOAT, [outputSize])]
     operations = []
@@ -47,9 +42,7 @@ def nnet2onnx(nnetFile, onnxFile="", outputVar="y_out", inputVar="X", normalizeN
     # Loop through each layer of the network and add operations and initializers
     for i in range(numLayers):
         # Use outputVar for the last layer
-        outputName = f"H{i}"
-        if i == numLayers - 1:
-            outputName = outputVar
+        outputName = f"H{i}" if i < numLayers - 1 else outputVar
 
         # Weight matrix multiplication
         operations.append(helper.make_node("MatMul", [f"W{i}", inputVar], [f"M{i}"]))
@@ -68,19 +61,21 @@ def nnet2onnx(nnetFile, onnxFile="", outputVar="y_out", inputVar="X", normalizeN
     graph_proto = helper.make_graph(operations, "nnet2onnx_Model", inputs, outputs, initializers)
     model_def = helper.make_model(graph_proto)
 
+    # Print statements
+    print(f"Converted NNet model at {nnetFile} to an ONNX model at {onnxFile}")
+
     # Save the ONNX model
     try:
         onnx.save(model_def, onnxFile)
-        print(f"Successfully converted NNet model from {nnetFile} to ONNX model at {onnxFile}")
+        print(f"ONNX model saved successfully at {onnxFile}")
     except Exception as e:
-        print(f"Error saving the ONNX model: {str(e)}")
+        print(f"Error saving the ONNX model: {e}")
 
 if __name__ == '__main__':
-    # Read user inputs and run nnet2onnx function
     if len(sys.argv) > 1:
         nnetFile = sys.argv[1]
         onnxFile = sys.argv[2] if len(sys.argv) > 2 else ""
         outputVar = sys.argv[3] if len(sys.argv) > 3 else "y_out"
         nnet2onnx(nnetFile, onnxFile, outputVar)
     else:
-        print("Error: You need to specify which .nnet file to convert to ONNX!")
+        print("Error: Need to specify the .nnet file to convert to ONNX!")
