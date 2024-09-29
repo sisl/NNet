@@ -1,18 +1,24 @@
 import unittest
 import sys
+import os
 sys.path.append('..')
 import numpy as np
 from NNet.python.nnet import NNet
 
 class TestNNet(unittest.TestCase):
 
+    def setUp(self):
+        # Check if the required .nnet file exists
+        self.nnetFile = "nnet/TestNetwork.nnet"
+        if not os.path.exists(self.nnetFile):
+            self.skipTest(f"Skipping test: {self.nnetFile} does not exist")
+
     def test_evaluate(self):
-        nnetFile = "nnet/TestNetwork.nnet"
         testInput = np.array([1.0, 1.0, 1.0, 100.0, 1.0], dtype=np.float32)
         expected_output = np.array([270.94961805, 280.8974763, 274.55254776, 288.10071007, 256.18037737])
 
         # Load model
-        nnet = NNet(nnetFile)
+        nnet = NNet(self.nnetFile)
         nnet_eval = nnet.evaluate_network(testInput)
         
         # Assert outputs are almost equal
@@ -45,12 +51,11 @@ class TestNNet(unittest.TestCase):
         np.testing.assert_almost_equal(nnet_eval_above_max, expected_output_max, decimal=7)
 
     def test_evaluate_multiple(self):
-        nnetFile = "nnet/TestNetwork.nnet"
         testInput = np.tile(np.array([1.0, 1.0, 1.0, 100.0, 1.0], dtype=np.float32), (3, 1))
         expected_output = np.tile(np.array([270.94961805, 280.8974763, 274.55254776, 288.10071007, 256.18037737]), (3, 1))
 
         # Load model
-        nnet = NNet(nnetFile)
+        nnet = NNet(self.nnetFile)
         nnet_eval = np.array(nnet.evaluate_network_multiple(testInput))
 
         # Assert outputs are almost equal
@@ -83,13 +88,11 @@ class TestNNet(unittest.TestCase):
         np.testing.assert_almost_equal(nnet_eval_above_max, expected_output_max, decimal=7)
 
     def test_num_inputs(self):
-        nnetFile = "nnet/TestNetwork.nnet"
-        nnet = NNet(nnetFile)
+        nnet = NNet(self.nnetFile)
         self.assertEqual(nnet.num_inputs(), 5)
 
     def test_num_outputs(self):
-        nnetFile = "nnet/TestNetwork.nnet"
-        nnet = NNet(nnetFile)
+        nnet = NNet(self.nnetFile)
         self.assertEqual(nnet.num_outputs(), 5)
 
 
