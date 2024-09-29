@@ -2,15 +2,18 @@ import unittest
 import sys
 import numpy as np
 import onnx
-from NNet.converters.nnet2onnx import nnet2onnx
-from NNet.converters.onnx2nnet import onnx2nnet
-from NNet.converters.pb2nnet import pb2nnet
-from NNet.converters.nnet2pb import nnet2pb
-import onnxruntime
-from NNet.python.nnet import NNet
 import os
 import tensorflow as tf
+import onnxruntime
 
+# Adjust import paths based on your folder structure
+from converters.nnet2onnx import nnet2onnx
+from converters.onnx2nnet import onnx2nnet
+from converters.pb2nnet import pb2nnet
+from converters.nnet2pb import nnet2pb
+from python.nnet import NNet
+
+# Disable TensorFlow GPU-related logs
 os.environ['TF_CPP_MIN_LOG_LEVEL'] = '2'
 os.environ["CUDA_VISIBLE_DEVICES"] = "-1"
 
@@ -88,7 +91,6 @@ class TestConverters(unittest.TestCase):
         output_tensor = graph.get_tensor_by_name("y_out:0")
 
         # Evaluate using TensorFlow
-        tf_eval = []
         with tf.compat.v1.Session(graph=graph) as sess:
             tf_eval = sess.run(output_tensor, feed_dict={input_tensor: testInput.reshape(1, -1)})[0]
 
