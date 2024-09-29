@@ -1,46 +1,37 @@
-name: CI Build
+name: CI
 
 on:
   push:
     branches:
-      - master
+      - main
   pull_request:
     branches:
-      - master
+      - main
 
 jobs:
   build:
     runs-on: ubuntu-latest
-
     strategy:
       matrix:
-        python-version: [3.8, 3.9, 3.10]
-
+        python-version: ["3.10", "3.11"]  # You can change versions here
     steps:
-      # Checkout the repository
-      - name: Checkout code
-        uses: actions/checkout@v3
+    - name: Checkout repository
+      uses: actions/checkout@v3
+      
+    - name: Set up Python ${{ matrix.python-version }}
+      uses: actions/setup-python@v4
+      with:
+        python-version: ${{ matrix.python-version }}
 
-      # Set up Python
-      - name: Set up Python ${{ matrix.python-version }}
-        uses: actions/setup-python@v4
-        with:
-          python-version: ${{ matrix.python-version }}
+    - name: Install dependencies
+      run: |
+        python -m pip install --upgrade pip
+        pip install -r requirements.txt
+        pip install -r test_requirements.txt
 
-      # Install dependencies
-      - name: Install dependencies
-        run: |
-          python -m pip install --upgrade pip
-          pip install -r test_requirements.txt
+    - name: Run tests with coverage
+      run: python -m pytest --cov=utils --cov=python --cov=converters test 
 
-      # Run tests with coverage
-      - name: Run tests with coverage
-        run: |
-          python -m pytest --cov=utils --cov=python --cov=converters test
-
-      # Upload coverage data to coveralls
-      - name: Upload coverage to Coveralls
-        uses: coverallsapp/github-action@v2.1.2
-        with:
-          github-token: ${{ secrets.GITHUB_TOKEN }}
+    - name: Upload coverage to Coveralls
+      run: coveralls
 
