@@ -3,4 +3,4 @@ pytest-cov==4.0.0
 onnx==1.14.0
 onnxruntime==1.15.0
 tensorflow==2.13.0
-numpy==1.23.5
+numpy>=1.23.5,<1.25  # Loosened numpy version
