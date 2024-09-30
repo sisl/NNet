@@ -1,37 +1,46 @@
-name: CI
+name: Python Test
+
 on:
-  workflow_dispatch:
-    inputs:
   push:
     branches:
       - main
   pull_request:
     branches:
       - main
+
 jobs:
-  run:
+  test:
     runs-on: ubuntu-latest
+
+    strategy:
+      matrix:
+        python-version: [3.8, 3.9, 3.10, 3.11]  # You can customize this based on the Python versions you support
+
     steps:
-      - name: Checkout
-        uses: actions/checkout@master
+    - name: Checkout repository
+      uses: actions/checkout@v3
 
-      - name: Setup z3
-        run: sudo apt-get -y install z3
+    - name: Set up Python ${{ matrix.python-version }}
+      uses: actions/setup-python@v4
+      with:
+        python-version: ${{ matrix.python-version }}
 
-      - name: Setup Yices
-        run: sudo add-apt-repository ppa:sri-csl/formal-methods; sudo apt-get update; sudo apt-get install yices2
+    - name: Install dependencies
+      run: |
+        python -m pip install --upgrade pip
+        pip install -r requirements.txt
 
-      - name: Set up Julia latest version
-        uses: julia-actions/setup-julia@latest
-      - uses: julia-actions/cache@v2
+    - name: Run tests with coverage
+      run: |
+        python -m pytest --cov=converters --cov=python --cov=utils test/
+      
+    - name: Upload coverage to Codecov
+      uses: codecov/codecov-action@v3
+      with:
+        token: ${{ secrets.CODECOV_TOKEN }}  # You can optionally add this if you want to report to Codecov
 
-      - name: Run tests
-        uses: julia-actions/julia-buildpkg@v1
-      - uses: julia-actions/julia-runtest@v1
-      - uses: julia-actions/julia-processcoverage@v1
-      - name: Upload coverage reports to Codecov
-        uses: codecov/codecov-action@v4
-        env:
-          CODECOV_TOKEN: ${{ secrets.CODECOV_TOKEN }}
-        with:
-          file: lcov.info # https://github.com/julia-actions/julia-processcoverage
+    - name: Report test results
+      if: failure()
+      run: |
+        echo "Tests failed"
+        exit 1
