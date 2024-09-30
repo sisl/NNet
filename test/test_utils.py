@@ -1,16 +1,19 @@
-import unittest
 import sys
-import numpy as np
 import os
-import filecmp
+import unittest
+import numpy as np
+import onnx
+import onnxruntime
+import tensorflow as tf
 
-# Adjusting the imports based on folder structure
-sys.path.append('..')
+# Add the root directory to sys.path to ensure we can import NNet modules
+sys.path.insert(0, os.path.abspath(os.path.join(os.path.dirname(__file__), '..')))
 
+from NNet.converters.nnet2onnx import nnet2onnx
+from NNet.converters.onnx2nnet import onnx2nnet
+from NNet.converters.pb2nnet import pb2nnet
+from NNet.converters.nnet2pb import nnet2pb
 from NNet.python.nnet import NNet
-from NNet.utils.readNNet import readNNet
-from NNet.utils.writeNNet import writeNNet
-from NNet.utils.normalizeNNet import normalizeNNet
 
 class TestUtils(unittest.TestCase):
 
