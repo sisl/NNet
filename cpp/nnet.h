@@ -13,8 +13,8 @@ public:
 
     std::vector<int> layerSizes;   // Vector of the dimensions of the layers in the network
 
-    std::vector<double> mins;      // Minimum value of inputs
-    std::vector<double> maxes;     // Maximum value of inputs
+    std::vector<double> mins;      // Minimum values of inputs
+    std::vector<double> maxes;     // Maximum values of inputs
     std::vector<double> means;     // Vector of the means used to scale the inputs and outputs
     std::vector<double> ranges;    // Vector of the ranges used to scale the inputs and outputs
 
@@ -29,9 +29,16 @@ public:
 };
 
 // Functions implemented in C, exposed via C linkage
-extern "C" std::unique_ptr<NNet> load_network(const char *filename);
-extern "C" int num_inputs(const NNet* network);
-extern "C" int num_outputs(const NNet* network);
-extern "C" int evaluate_network(NNet* network, double *input, double *output, bool normalizeInput, bool normalizeOutput);
-extern "C" void destroy_network(NNet* network);
+extern "C" {
+    std::unique_ptr<NNet> load_network(const char *filename);
+    
+    // Functions marked 'const' where appropriate for immutability
+    int num_inputs(const NNet* network);
+    int num_outputs(const NNet* network);
 
+    // Evaluate network (modifies input and output buffers)
+    int evaluate_network(NNet* network, double *input, double *output, bool normalizeInput, bool normalizeOutput);
+
+    // Frees the network's resources
+    void destroy_network(NNet* network);
+}
