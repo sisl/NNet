@@ -1,31 +1,10 @@
 [run]
-# Include source files for coverage.
 branch = True
-source =
-    NNet
-    tests
-
-# Omit specific files from the coverage report.
-omit =
-    */tests/*
-    */__init__.py
-    */setup.py
+source = .
 
 [report]
-# Exclude specific lines from the coverage report.
 exclude_lines =
-    # Don't count the 'if __name__ == "__main__"' block.
     if __name__ == '__main__':
-    
-    # Don't count debugging or temporary code.
-    def __repr__
-    def __str__
-    raise NotImplementedError
-
-# Show missing lines and branches.
-show_missing = True
-skip_covered = True
 
 [html]
-# Generate an HTML report for coverage results.
 directory = coverage_html_report
