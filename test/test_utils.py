@@ -3,12 +3,14 @@ import sys
 import numpy as np
 import os
 import filecmp
+
+# Adjusting the imports based on folder structure
+sys.path.append('..')
+
 from NNet.python.nnet import NNet
 from NNet.utils.readNNet import readNNet
 from NNet.utils.writeNNet import writeNNet
 from NNet.utils.normalizeNNet import normalizeNNet
-
-sys.path.append('..')
 
 class TestUtils(unittest.TestCase):
 
