@@ -1,13 +1,20 @@
-import unittest
 import sys
 import os
+import unittest
 import numpy as np
+import onnx
+import onnxruntime
+import tensorflow as tf
 
-# Adding the project path to the system path
-sys.path.append('..')
+# Add the root directory to sys.path to ensure we can import NNet modules
+sys.path.insert(0, os.path.abspath(os.path.join(os.path.dirname(__file__), '..')))
 
-# Import the necessary NNet module
+from NNet.converters.nnet2onnx import nnet2onnx
+from NNet.converters.onnx2nnet import onnx2nnet
+from NNet.converters.pb2nnet import pb2nnet
+from NNet.converters.nnet2pb import nnet2pb
 from NNet.python.nnet import NNet
+
 
 class TestNNet(unittest.TestCase):
 
