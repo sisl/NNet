@@ -6,7 +6,7 @@ from converters.nnet2onnx import nnet2onnx
 from converters.onnx2nnet import onnx2nnet
 from converters.pb2nnet import pb2nnet
 from converters.nnet2pb import nnet2pb
-from python.nnet import NNet
+
 
 # Disable TensorFlow GPU-related logs
 os.environ['TF_CPP_MIN_LOG_LEVEL'] = '2'
