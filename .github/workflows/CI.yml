@@ -14,10 +14,11 @@ jobs:
     strategy:
       matrix:
         python-version: ["3.10", "3.11"]
+
     steps:
     - name: Checkout repository
       uses: actions/checkout@v3
-      
+
     - name: Set up Python ${{ matrix.python-version }}
       uses: actions/setup-python@v4
       with:
@@ -28,5 +29,10 @@ jobs:
         python -m pip install --upgrade pip
         pip install -r requirements.txt
 
-    - name: Run tests with pytest
-      run: python -m pytest
+    - name: Set up NNet Module Path
+      run: |
+        # Export the root directory of the repo to PYTHONPATH
+        echo "PYTHONPATH=$PYTHONPATH:$PWD" >> $GITHUB_ENV
+
+    - name: Run tests with coverage
+      run: python -m pytest --cov=converters --cov=python --cov=utils test/
