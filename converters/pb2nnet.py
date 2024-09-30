@@ -1,6 +1,6 @@
 import numpy as np
 from tensorflow.python.framework import tensor_util
-from tensorflow.python.framework import graph_util
+from tensorflow.python.framework import convert_to_constants as ctoc
 import os
 os.environ["CUDA_VISIBLE_DEVICES"] = "-1"
 import tensorflow as tf
@@ -57,7 +57,7 @@ def pb2nnet(pbFile, inputMins=None, inputMaxes=None, means=None, ranges=None, nn
         savedModelTags (list, optional): Tags to use when loading a SavedModel.
     """
     if not nnetFile:
-        nnetFile = f"{pbFile[:-2]}nnet"
+        nnetFile = f"{pbFile[:-3]}.nnet"
 
     if savedModel:
         # Load SavedModel
@@ -68,8 +68,8 @@ def pb2nnet(pbFile, inputMins=None, inputMaxes=None, means=None, ranges=None, nn
             print(f"Error loading SavedModel: {e}")
             return
 
-        # Simplify the graph
-        simp_graph_def = graph_util.convert_variables_to_constants(sess, sess.graph.as_graph_def(), [outputName])
+        # Simplify the graph using TensorFlow 2.x's convert_variables_to_constants_v2
+        simp_graph_def = ctoc.convert_variables_to_constants_v2(sess.graph.as_graph_def(), [outputName])
         with tf.compat.v1.Graph().as_default() as graph:
             tf.import_graph_def(simp_graph_def, name="")
         sess = tf.compat.v1.Session(graph=graph)
