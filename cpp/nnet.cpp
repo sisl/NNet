@@ -7,7 +7,7 @@
 #include <cmath>
 #include "nnet.h"
 
-// Function to safely convert strings to numbers
+// Safely convert strings to double
 double safe_atof(const std::string &str) {
     try {
         return std::stod(str);
@@ -26,13 +26,12 @@ std::unique_ptr<NNet> load_network(const std::string& filename) {
 
     auto nnet = std::make_unique<NNet>();
     std::string line;
-    int i = 0, layer = 0, row = 0, j = 0, param = 0;
+    int layer = 0;
 
-    // Read the network's int parameters
-    while (std::getline(file, line) && line.find("//") != std::string::npos) {
-        // Skip header lines
-    }
+    // Skip comments or header lines
+    while (std::getline(file, line) && line.find("//") != std::string::npos) {}
 
+    // Read network parameters
     std::stringstream ss(line);
     std::vector<std::string> tokens;
     std::string token;
@@ -45,81 +44,54 @@ std::unique_ptr<NNet> load_network(const std::string& filename) {
     nnet->outputSize = std::stoi(tokens[2]);
     nnet->maxLayerSize = std::stoi(tokens[3]);
 
-    // Allocate space and read layer sizes
+    // Read layer sizes
     nnet->layerSizes.resize(nnet->numLayers + 1);
     std::getline(file, line);
     ss.clear();
     ss.str(line);
-    for (i = 0; i < nnet->numLayers + 1; ++i) {
+    for (int i = 0; i <= nnet->numLayers; ++i) {
         std::getline(ss, token, ',');
         nnet->layerSizes[i] = std::stoi(token);
     }
 
-    // Read mins, maxes, means, ranges
-    nnet->mins.resize(nnet->inputSize);
-    std::getline(file, line);
-    ss.clear();
-    ss.str(line);
-    for (i = 0; i < nnet->inputSize; ++i) {
-        std::getline(ss, token, ',');
-        nnet->mins[i] = safe_atof(token);
-    }
-
-    nnet->maxes.resize(nnet->inputSize);
-    std::getline(file, line);
-    ss.clear();
-    ss.str(line);
-    for (i = 0; i < nnet->inputSize; ++i) {
-        std::getline(ss, token, ',');
-        nnet->maxes[i] = safe_atof(token);
-    }
-
-    nnet->means.resize(nnet->inputSize + 1);
-    std::getline(file, line);
-    ss.clear();
-    ss.str(line);
-    for (i = 0; i < nnet->inputSize + 1; ++i) {
-        std::getline(ss, token, ',');
-        nnet->means[i] = safe_atof(token);
-    }
-
-    nnet->ranges.resize(nnet->inputSize + 1);
-    std::getline(file, line);
-    ss.clear();
-    ss.str(line);
-    for (i = 0; i < nnet->inputSize + 1; ++i) {
-        std::getline(ss, token, ',');
-        nnet->ranges[i] = safe_atof(token);
-    }
-
-    // Allocate space for the network matrix
-    nnet->matrix.resize(nnet->numLayers);
-    for (layer = 0; layer < nnet->numLayers; ++layer) {
-        nnet->matrix[layer].resize(2);
-        nnet->matrix[layer][0].resize(nnet->layerSizes[layer + 1], std::vector<double>(nnet->layerSizes[layer]));
-        nnet->matrix[layer][1].resize(nnet->layerSizes[layer + 1], std::vector<double>(1));
-    }
-
-    // Read in the weights and biases
-    layer = 0;
-    param = 0;
-    i = 0;
-    j = 0;
-
-    while (std::getline(file, line)) {
-        if (i >= nnet->layerSizes[layer + 1]) {
-            param = (param == 0) ? 1 : 0;
-            if (param == 0) layer++;
-            i = 0;
-        }
-
+    // Read mins, maxes, means, and ranges for normalization
+    auto read_vector = [&](std::vector<double>& vec, int size) {
+        vec.resize(size);
+        std::getline(file, line);
         ss.clear();
         ss.str(line);
-        j = 0;
-        while (std::getline(ss, token, ',')) {
-            nnet->matrix[layer][param][i][j++] = safe_atof(token);
+        for (int i = 0; i < size; ++i) {
+            std::getline(ss, token, ',');
+            vec[i] = safe_atof(token);
         }
-        ++i;
+    };
+
+    read_vector(nnet->mins, nnet->inputSize);
+    read_vector(nnet->maxes, nnet->inputSize);
+    read_vector(nnet->means, nnet->inputSize + 1);
+    read_vector(nnet->ranges, nnet->inputSize + 1);
+
+    // Initialize network weights and biases
+    nnet->matrix.resize(nnet->numLayers);
+    for (int l = 0; l < nnet->numLayers; ++l) {
+        nnet->matrix[l].resize(2);
+        nnet->matrix[l][0].resize(nnet->layerSizes[l + 1], std::vector<double>(nnet->layerSizes[l]));
+        nnet->matrix[l][1].resize(nnet->layerSizes[l + 1], std::vector<double>(1));
+    }
+
+    // Read weights and biases from file
+    for (int l = 0; l < nnet->numLayers; ++l) {
+        for (int param = 0; param < 2; ++param) {
+            for (int i = 0; i < nnet->layerSizes[l + 1]; ++i) {
+                std::getline(file, line);
+                ss.clear();
+                ss.str(line);
+                for (int j = 0; j < nnet->layerSizes[l]; ++j) {
+                    std::getline(ss, token, ',');
+                    nnet->matrix[l][param][i][j] = safe_atof(token);
+                }
+            }
+        }
     }
 
     nnet->inputs.resize(nnet->maxLayerSize);
@@ -130,12 +102,11 @@ std::unique_ptr<NNet> load_network(const std::string& filename) {
 
 // Deallocate the memory used by the network
 void destroy_network(NNet* nnet) {
-    if (!nnet) return;
-    // All memory will be automatically freed when unique_ptr goes out of scope.
+    // No explicit memory cleanup is needed as we are using smart pointers (unique_ptr).
 }
 
 // Evaluate the network with a given input
-int evaluate_network(NNet *nnet, double *input, double *output, bool normalizeInput, bool normalizeOutput) {
+int evaluate_network(NNet *nnet, const double *input, double *output, bool normalizeInput, bool normalizeOutput) {
     if (!nnet) {
         std::cerr << "Error: Network is NULL!" << std::endl;
         return -1;
@@ -144,7 +115,7 @@ int evaluate_network(NNet *nnet, double *input, double *output, bool normalizeIn
     int inputSize = nnet->inputSize;
     int outputSize = nnet->outputSize;
 
-    // Normalize inputs
+    // Normalize inputs if required
     for (int i = 0; i < inputSize; ++i) {
         if (normalizeInput) {
             if (input[i] > nnet->maxes[i]) {
@@ -159,7 +130,7 @@ int evaluate_network(NNet *nnet, double *input, double *output, bool normalizeIn
         }
     }
 
-    // Forward pass through layers
+    // Forward pass through each layer
     for (int layer = 0; layer < nnet->numLayers; ++layer) {
         for (int i = 0; i < nnet->layerSizes[layer + 1]; ++i) {
             double sum = 0.0;
@@ -167,9 +138,9 @@ int evaluate_network(NNet *nnet, double *input, double *output, bool normalizeIn
                 sum += nnet->inputs[j] * nnet->matrix[layer][0][i][j];
             }
             sum += nnet->matrix[layer][1][i][0];  // Add bias
-            nnet->temp[i] = (layer < nnet->numLayers - 1 && sum < 0.0) ? 0.0 : sum;  // ReLU
+            nnet->temp[i] = (layer < nnet->numLayers - 1 && sum < 0.0) ? 0.0 : sum;  // ReLU activation
         }
-        nnet->inputs = nnet->temp;
+        nnet->inputs = nnet->temp;  // Set inputs for the next layer
     }
 
     // Set final outputs
@@ -185,7 +156,7 @@ int evaluate_network(NNet *nnet, double *input, double *output, bool normalizeIn
 }
 
 int main() {
-    const char* filename = "../nnet/TestNetwork.nnet";
+    const std::string filename = "../nnet/TestNetwork.nnet";
     std::unique_ptr<NNet> network = load_network(filename);
 
     if (!network) {
@@ -198,6 +169,11 @@ int main() {
 
     if (evaluate_network(network.get(), input, output, true, true) == 1) {
         std::cout << "Network evaluated successfully!" << std::endl;
+        std::cout << "Output: ";
+        for (double val : output) {
+            std::cout << val << " ";
+        }
+        std::cout << std::endl;
     } else {
         std::cerr << "Error evaluating network!" << std::endl;
     }
