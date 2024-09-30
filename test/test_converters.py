@@ -28,4 +28,26 @@ class TestConverters(unittest.TestCase):
 
         # Load and evaluate TensorFlow model
         graph_def = tf.compat.v1.GraphDef()
-        with
+        with tf.io.gfile.GFile(pbFile, "rb") as f:
+            graph_def.ParseFromString(f.read())
+
+        # Define session to evaluate TensorFlow model
+        with tf.compat.v1.Session(graph=tf.Graph()) as sess:
+            tf.import_graph_def(graph_def, name="")
+            input_tensor = sess.graph.get_tensor_by_name("Placeholder:0")  # Ensure correct placeholder name
+            output_tensor = sess.graph.get_tensor_by_name("Identity:0")  # Ensure correct output name
+
+            # Run the session
+            testInput = np.array([1.0, 1.0, 1.0, 100.0, 1.0], dtype=np.float32)
+            tf_output = sess.run(output_tensor, feed_dict={input_tensor: testInput.reshape(1, -1)})
+
+        # Evaluate NNet models
+        nnetEval = nnet.evaluate_network(testInput)
+        nnetEval2 = nnet2.evaluate_network(testInput)
+
+        # Check TensorFlow evaluation vs NNet evaluation
+        np.testing.assert_allclose(tf_output.flatten(), nnetEval, rtol=1e-5, err_msg="TensorFlow output mismatch.")
+        np.testing.assert_allclose(nnetEval, nnetEval2, rtol=1e-5, err_msg="NNet model mismatch after conversion.")
+
+if __name__ == '__main__':
+    unittest.main()
