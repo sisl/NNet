@@ -1,12 +1,7 @@
-import unittest
 import sys
-import numpy as np
-import onnx
 import os
-import tensorflow as tf
-import onnxruntime
+sys.path.insert(0, os.path.abspath(os.path.join(os.path.dirname(__file__), '..')))
 
-# Adjust import paths based on your folder structure
 from converters.nnet2onnx import nnet2onnx
 from converters.onnx2nnet import onnx2nnet
 from converters.pb2nnet import pb2nnet
