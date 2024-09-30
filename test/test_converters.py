@@ -53,8 +53,8 @@ class TestConverters(unittest.TestCase):
         percChangeNNet = np.max(np.abs((nnetEval - nnetEval2) / nnetEval)) * 100.0
 
         # Assert evaluation consistency
-        self.assertLess(percChangeONNX, 1e-3)
-        self.assertLess(percChangeNNet, 1e-3)
+        self.assertLess(percChangeONNX, 1e-3, "ONNX model evaluation differs too much")
+        self.assertLess(percChangeNNet, 1e-3, "Converted NNet model evaluation differs too much")
 
     def test_pb(self):
         """Test NNet to TensorFlow Protocol Buffer (PB) conversion and back."""
@@ -93,8 +93,8 @@ class TestConverters(unittest.TestCase):
         percChangeNNet = np.max(np.abs((nnetEval - nnetEval2) / nnetEval)) * 100.0
 
         # Assert evaluation consistency
-        self.assertLess(percChangePB, 1e-3)
-        self.assertLess(percChangeNNet, 1e-3)
+        self.assertLess(percChangePB, 1e-3, "PB model evaluation differs too much")
+        self.assertLess(percChangeNNet, 1e-3, "Converted NNet model evaluation differs too much")
 
 
 if __name__ == '__main__':
