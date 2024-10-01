@@ -1,7 +1,12 @@
-
 name: Python CI
 
-on: [push, pull_request]
+on:
+  push:
+    branches:
+      - main
+  pull_request:
+    branches:
+      - main
 
 jobs:
   build:
@@ -18,26 +23,38 @@ jobs:
       uses: actions/checkout@v3
 
     # Step 2: Set up Python with the specified version
-    - name: Set up Python
+    - name: Set up Python ${{ matrix.python-version }}
       uses: actions/setup-python@v4
       with:
         python-version: ${{ matrix.python-version }}
 
-    # Step 3: Install dependencies from test_requirements.txt
+    # Step 3: Cache dependencies to speed up future builds
+    - name: Cache Python dependencies
+      uses: actions/cache@v4
+      with:
+        path: ~/.cache/pip
+        key: ${{ runner.os }}-pip-${{ hashFiles('test_requirements.txt') }}-${{ matrix.python-version }}
+        restore-keys: |
+          ${{ runner.os }}-pip-${{ matrix.python-version }}
+          ${{ runner.os }}-pip-
+
+    # Step 4: Install dependencies from test_requirements.txt
     - name: Install dependencies
       run: |
         pip install --upgrade pip
         pip install -r test_requirements.txt
-    # Step 4: Run tests using pytest and measure coverage
-    - name: Run tests
-      run: python -m pytest --cov=utils --cov=python --cov=converters test
 
-    # Step 5: Upload coverage to Coveralls
+    # Step 5: Run tests using pytest and measure coverage
+    - name: Run tests
+      run: |
+        python -m pytest --cov=utils --cov=python --cov=converters test/
+
+    # Step 6: Upload coverage to Coveralls
     - name: Upload coverage to Coveralls
       uses: coverallsapp/github-action@v1
       with:
         github-token: ${{ secrets.GITHUB_TOKEN }}
 
-    # Disable email notifications (optional)
-    - name: Notifications
+    # Step 7: Disable email notifications (optional)
+    - name: Disable email notifications
       run: echo "Email notifications are disabled"
