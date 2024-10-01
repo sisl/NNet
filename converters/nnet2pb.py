@@ -1,7 +1,7 @@
 import tensorflow as tf
 import numpy as np
 import sys
-from tensorflow.python.framework import graph_util
+from tensorflow.python.framework.convert_to_constants import convert_variables_to_constants_v2
 import os
 os.environ["CUDA_VISIBLE_DEVICES"] = "-1"  # Force CPU usage
 from NNet.utils.readNNet import readNNet
@@ -58,14 +58,14 @@ def nnet2pb(nnetFile, pbFile="", output_node_names="y_out", normalizeNetwork=Fal
 
     # Freeze the graph and save the .pb file
     try:
-        freeze_graph(sess, pbFile, output_node_names)
+        freeze_graph_v2(sess, pbFile, output_node_names)
         print(f"Successfully saved TensorFlow frozen graph to {pbFile}")
     except Exception as e:
         print(f"Error freezing or saving the graph: {e}")
 
-def freeze_graph(sess, output_graph_name, output_node_names):
+def freeze_graph_v2(sess, output_graph_name, output_node_names):
     """
-    Save only the necessary variables for evaluation to a .pb file.
+    Save only the necessary variables for evaluation to a .pb file (TensorFlow 2.x version).
 
     Args:
         sess (tf.compat.v1.Session): The TensorFlow session where the graph is defined.
@@ -73,8 +73,11 @@ def freeze_graph(sess, output_graph_name, output_node_names):
         output_node_names (str): Name(s) of the output operation(s) in the graph.
     """
     try:
-        input_graph_def = tf.compat.v1.get_default_graph().as_graph_def()
-        output_graph_def = graph_util.convert_variables_to_constants(
+        # Get the graph definition
+        input_graph_def = sess.graph.as_graph_def()
+
+        # Convert variables to constants using the TensorFlow 2.x method
+        output_graph_def = convert_variables_to_constants_v2(
             sess, input_graph_def, output_node_names.split(",")
         )
 
