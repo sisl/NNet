@@ -19,6 +19,9 @@ class TestConverters(unittest.TestCase):
         # Convert NNet to TensorFlow PB
         nnet2pb(self.nnetFile, pbFile=pbFile, normalizeNetwork=True)
 
+        # Ensure the pb file is created before continuing
+        self.assertTrue(os.path.exists(pbFile), f"{pbFile} not found!")
+
         # Convert PB back to NNet
         pb2nnet(pbFile, nnetFile=nnetFile2)
 
@@ -34,10 +37,12 @@ class TestConverters(unittest.TestCase):
         # Define session to evaluate TensorFlow model
         with tf.compat.v1.Session(graph=tf.Graph()) as sess:
             tf.import_graph_def(graph_def, name="")
-            input_tensor = sess.graph.get_tensor_by_name("Placeholder:0")  # Ensure correct placeholder name
-            output_tensor = sess.graph.get_tensor_by_name("Identity:0")  # Ensure correct output name
+            
+            # Ensure tensor names are correct (check naming in nnet2pb)
+            input_tensor = sess.graph.get_tensor_by_name("input:0")  # Adjust this to match your input tensor name
+            output_tensor = sess.graph.get_tensor_by_name("y_out:0")  # Adjust this to match your output tensor name
 
-            # Run the session
+            # Test input - ensure it matches the model's expected input size
             testInput = np.array([1.0, 1.0, 1.0, 100.0, 1.0], dtype=np.float32)
             tf_output = sess.run(output_tensor, feed_dict={input_tensor: testInput.reshape(1, -1)})
 
