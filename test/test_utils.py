@@ -1,5 +1,5 @@
 import unittest
-import sys
+import os
 import numpy as np
 import filecmp
 from NNet.python.nnet import NNet
@@ -9,62 +9,60 @@ from NNet.utils.normalizeNNet import normalizeNNet
 
 class TestUtils(unittest.TestCase):
 
-    def test_read(self):
-        nnetFile = "nnet/TestNetwork.nnet"
-        testInput = np.array([1.0, 1.0, 1.0, 100.0, 1.0], dtype=np.float32)
-        nnet = NNet(nnetFile)
-        weights, biases, inputMins, inputMaxes, means, ranges = readNNet(nnetFile, withNorm=True)
+    def setUp(self):
+        self.nnetFile1 = "nnet/TestNetwork.nnet"
+        self.nnetFile2 = "nnet/TestNetwork.v2.nnet"
+        self.assertTrue(os.path.exists(self.nnetFile1), f"Test file {self.nnetFile1} not found!")
+        self.testInput = np.array([1.0, 1.0, 1.0, 100.0, 1.0], dtype=np.float32)
 
-        self.assertEqual(len(weights), len(nnet.weights), "Weights length mismatch")
-        self.assertEqual(len(biases), len(nnet.biases), "Biases length mismatch")
-        self.assertEqual(len(inputMins), len(nnet.mins), "Input mins length mismatch")
-        self.assertEqual(len(inputMaxes), len(nnet.maxes), "Input maxes length mismatch")
-        self.assertEqual(len(means), len(nnet.means), "Means length mismatch")
-        self.assertEqual(len(ranges), len(nnet.ranges), "Ranges length mismatch")
+    def test_read(self):
+        """Test reading a NNet file and comparing with NNet object."""
+        weights, biases, inputMins, inputMaxes, means, ranges = readNNet(self.nnetFile1, withNorm=True)
+        nnet = NNet(self.nnetFile1)
+
+        self.assertEqual(len(weights), len(nnet.weights))
+        self.assertEqual(len(biases), len(nnet.biases))
+        self.assertEqual(len(inputMins), len(nnet.mins))
+        self.assertEqual(len(inputMaxes), len(nnet.maxes))
+        self.assertEqual(len(means), len(nnet.means))
+        self.assertEqual(len(ranges), len(nnet.ranges))
 
         for w1, w2 in zip(weights, nnet.weights):
-            np.testing.assert_allclose(w1, w2, rtol=1e-7, err_msg="Weight values mismatch")
+            self.assertTrue(np.all(w1 == w2))
         for b1, b2 in zip(biases, nnet.biases):
-            np.testing.assert_allclose(b1, b2, rtol=1e-7, err_msg="Bias values mismatch")
-        np.testing.assert_allclose(inputMins, nnet.mins, rtol=1e-7, err_msg="Input mins mismatch")
-        np.testing.assert_allclose(inputMaxes, nnet.maxes, rtol=1e-7, err_msg="Input maxes mismatch")
-        np.testing.assert_allclose(means, nnet.means, rtol=1e-7, err_msg="Means mismatch")
-        np.testing.assert_allclose(ranges, nnet.ranges, rtol=1e-7, err_msg="Ranges mismatch")
+            self.assertTrue(np.all(b1 == b2))
+        self.assertTrue(np.all(inputMins == nnet.mins))
+        self.assertTrue(np.all(inputMaxes == nnet.maxes))
+        self.assertTrue(np.all(means == nnet.means))
+        self.assertTrue(np.all(ranges == nnet.ranges))
 
     def test_write(self):
-        nnetFile1 = "nnet/TestNetwork.nnet"
-        nnetFile2 = "nnet/TestNetwork.v2.nnet"
-        testInput = np.array([1.0, 1.0, 1.0, 100.0, 1.0], dtype=np.float32)
+        """Test writing a NNet model to a file and comparing outputs."""
+        nnet1 = NNet(self.nnetFile1)
+        writeNNet(nnet1.weights, nnet1.biases, nnet1.mins, nnet1.maxes, nnet1.means, nnet1.ranges, self.nnetFile2)
+        nnet2 = NNet(self.nnetFile2)
 
-        # Load original network and write to new file
-        nnet1 = NNet(nnetFile1)
-        writeNNet(nnet1.weights, nnet1.biases, nnet1.mins, nnet1.maxes, nnet1.means, nnet1.ranges, nnetFile2)
+        eval1 = nnet1.evaluate_network(self.testInput)
+        eval2 = nnet2.evaluate_network(self.testInput)
 
-        # Load the new network
-        nnet2 = NNet(nnetFile2)
+        percChangeNNet = max(abs((eval1 - eval2) / eval1)) * 100.0
+        self.assertTrue(percChangeNNet < 1e-8)
 
-        eval1 = nnet1.evaluate_network(testInput)
-        eval2 = nnet2.evaluate_network(testInput)
-
-        np.testing.assert_allclose(eval1, eval2, rtol=1e-8, err_msg="Evaluation mismatch after writing")
-        
-        # File content comparison (may not always work due to floating-point precision issues)
-        self.assertTrue(filecmp.cmp(nnetFile1, nnetFile2), "File content mismatch after writing")
+        # Optionally use file comparison, but it's not always reliable for floating-point numbers
+        self.assertTrue(filecmp.cmp(self.nnetFile1, self.nnetFile2), "Files are not identical!")
 
     def test_normalize(self):
-        nnetFile1 = "nnet/TestNetwork.nnet"
-        nnetFile2 = "nnet/TestNetwork.v2.nnet"
-        testInput = np.array([1.0, 1.0, 1.0, 100.0, 1.0], dtype=np.float32)
+        """Test normalization of a NNet model."""
+        nnet1 = NNet(self.nnetFile1)
+        normalizeNNet(self.nnetFile1, self.nnetFile2)
+        nnet2 = NNet(self.nnetFile2)
 
-        # Load and normalize network
-        nnet1 = NNet(nnetFile1)
-        normalizeNNet(nnetFile1, nnetFile2)
-        nnet2 = NNet(nnetFile2)
+        eval1 = nnet1.evaluate_network(self.testInput)
+        eval2 = nnet2.evaluate_network(self.testInput)
 
-        eval1 = nnet1.evaluate_network(testInput)
-        eval2 = nnet2.evaluate_network(testInput)
+        percChangeNNet = max(abs((eval1 - eval2) / eval1)) * 100.0
+        self.assertTrue(percChangeNNet < 1e-3)
 
-        np.testing.assert_allclose(eval1, eval2, rtol=1e-3, err_msg="Evaluation mismatch after normalization")
 
 if __name__ == "__main__":
     unittest.main()
