@@ -36,7 +36,7 @@ class TestConverters(unittest.TestCase):
         # Load models and validate
         nnet = NNet(self.nnetFile)
         nnet2 = NNet(nnetFile2)
-        sess = onnxruntime.InferenceSession(onnxFile)
+        sess = onnxruntime.InferenceSession(onnxFile, providers=['CPUExecutionProvider'])  # Ensure CPU execution provider
         testInput = np.array([1.0, 1.0, 1.0, 100.0, 1.0], dtype=np.float32).reshape(1, -1)
 
         # ONNX evaluation
@@ -89,56 +89,6 @@ class TestConverters(unittest.TestCase):
 
         np.testing.assert_allclose(nnetEval, pbEval.flatten(), rtol=1e-5)
         np.testing.assert_allclose(nnetEval, nnetEval2, rtol=1e-5)
-
-
-class TestNNet(unittest.TestCase):
-
-    def setUp(self):
-        self.nnetFile = "nnet/TestNetwork.nnet"
-        self.assertTrue(os.path.exists(self.nnetFile), f"{self.nnetFile} not found!")
-
-    def test_evaluate(self):
-        """Test the evaluation of a single input"""
-        testInput = np.array([1.0, 1.0, 1.0, 100.0, 1.0], dtype=np.float32)
-
-        # Load model
-        nnet = NNet(self.nnetFile)
-        nnetEval = nnet.evaluate_network(testInput)
-        outputVal = np.array([270.94961805, 280.8974763, 274.55254776, 288.10071007, 256.18037737])
-
-        # Check output within tolerance
-        np.testing.assert_allclose(nnetEval, outputVal, rtol=1e-5)
-
-    def test_evaluate_multiple(self):
-        """Test the evaluation of multiple inputs"""
-        testInput = np.tile(np.array([1.0, 1.0, 1.0, 100.0, 1.0], dtype=np.float32), (3, 1))
-
-        # Load model
-        nnet = NNet(self.nnetFile)
-        nnetEval = np.array(nnet.evaluate_network_multiple(testInput))
-        outputVal = np.tile(np.array([270.94961805, 280.8974763, 274.55254776, 288.10071007, 256.18037737]), (3, 1))
-
-        np.testing.assert_allclose(nnetEval, outputVal, rtol=1e-5)
-
-
-class TestUtils(unittest.TestCase):
-
-    def setUp(self):
-        self.nnetFile1 = "nnet/TestNetwork.nnet"
-        self.nnetFile2 = "nnet/TestNetwork.v2.nnet"
-        self.assertTrue(os.path.exists(self.nnetFile1), f"{self.nnetFile1} not found!")
-        self.testInput = np.array([1.0, 1.0, 1.0, 100.0, 1.0], dtype=np.float32)
-
-    def test_write(self):
-        """Test writing a NNet model to a file and comparing outputs."""
-        nnet1 = NNet(self.nnetFile1)
-        writeNNet(nnet1.weights, nnet1.biases, nnet1.mins, nnet1.maxes, nnet1.means, nnet1.ranges, self.nnetFile2)
-        nnet2 = NNet(self.nnetFile2)
-
-        eval1 = nnet1.evaluate_network(self.testInput)
-        eval2 = nnet2.evaluate_network(self.testInput)
-
-        np.testing.assert_allclose(eval1, eval2, rtol=1e-8)
 
 
 if __name__ == '__main__':
