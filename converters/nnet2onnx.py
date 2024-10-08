@@ -25,6 +25,11 @@ def nnet2onnx(nnetFile, onnxFile="", outputVar="y_out", inputVar="X", normalizeN
         print(f"Error reading NNet file: {e}")
         return
 
+    # Ensure weights and biases arrays are valid
+    if len(weights) == 0 or len(biases) == 0:
+        print(f"Error: Weights or biases are empty in {nnetFile}")
+        return
+
     inputSize = weights[0].shape[1]
     outputSize = weights[-1].shape[0]
     numLayers = len(weights)
@@ -41,6 +46,11 @@ def nnet2onnx(nnetFile, onnxFile="", outputVar="y_out", inputVar="X", normalizeN
 
     # Loop through each layer of the network and add operations and initializers
     for i in range(numLayers):
+        # Ensure dimensions match for matrix multiplication
+        if i > 0 and weights[i].shape[1] != weights[i - 1].shape[0]:
+            print(f"Error: Shape mismatch between layers {i-1} and {i} in weights.")
+            return
+
         # Use outputVar for the last layer
         outputName = f"H{i}" if i < numLayers - 1 else outputVar
 
