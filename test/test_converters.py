@@ -7,7 +7,9 @@ from NNet.converters.onnx2nnet import onnx2nnet
 from NNet.converters.pb2nnet import pb2nnet
 from NNet.converters.nnet2pb import nnet2pb
 from NNet.python.nnet import NNet
+from NNet.utils.writeNNet import writeNNet  # Import the writeNNet function
 import tensorflow as tf
+from tensorflow.python.framework.convert_to_constants import convert_variables_to_constants_v2
 
 
 class TestConverters(unittest.TestCase):
