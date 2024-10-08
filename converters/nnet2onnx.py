@@ -34,8 +34,8 @@ def nnet2onnx(nnetFile, onnxFile="", outputVar="y_out", inputVar="X", normalizeN
         onnxFile = f"{nnetFile[:-4]}.onnx"
 
     # Initialize graph inputs and outputs
-    inputs = [helper.make_tensor_value_info(inputVar, TensorProto.FLOAT, [inputSize])]
-    outputs = [helper.make_tensor_value_info(outputVar, TensorProto.FLOAT, [outputSize])]
+    inputs = [helper.make_tensor_value_info(inputVar, TensorProto.FLOAT, [None, inputSize])]
+    outputs = [helper.make_tensor_value_info(outputVar, TensorProto.FLOAT, [None, outputSize])]
     operations = []
     initializers = []
 
@@ -45,7 +45,7 @@ def nnet2onnx(nnetFile, onnxFile="", outputVar="y_out", inputVar="X", normalizeN
         outputName = f"H{i}" if i < numLayers - 1 else outputVar
 
         # Weight matrix multiplication
-        operations.append(helper.make_node("MatMul", [f"W{i}", inputVar], [f"M{i}"]))
+        operations.append(helper.make_node("MatMul", [inputVar if i == 0 else f"R{i-1}", f"W{i}"], [f"M{i}"]))
         initializers.append(numpy_helper.from_array(weights[i].astype(np.float32), name=f"W{i}"))
 
         # Bias addition
@@ -55,7 +55,6 @@ def nnet2onnx(nnetFile, onnxFile="", outputVar="y_out", inputVar="X", normalizeN
         # Use ReLU activation for all layers except the last layer
         if i < numLayers - 1:
             operations.append(helper.make_node("Relu", [f"H{i}"], [f"R{i}"]))
-            inputVar = f"R{i}"
 
     # Create the graph and model in ONNX
     graph_proto = helper.make_graph(operations, "nnet2onnx_Model", inputs, outputs, initializers)
