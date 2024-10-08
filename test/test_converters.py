@@ -7,7 +7,7 @@ from NNet.converters.onnx2nnet import onnx2nnet
 from NNet.converters.pb2nnet import pb2nnet
 from NNet.converters.nnet2pb import nnet2pb
 from NNet.python.nnet import NNet
-from NNet.utils.writeNNet import writeNNet  # Import the writeNNet function
+from NNet.utils.writeNNet import writeNNet
 import tensorflow as tf
 from tensorflow.python.framework.convert_to_constants import convert_variables_to_constants_v2
 
@@ -36,7 +36,9 @@ class TestConverters(unittest.TestCase):
         # Load models and validate
         nnet = NNet(self.nnetFile)
         nnet2 = NNet(nnetFile2)
-        sess = onnxruntime.InferenceSession(onnxFile, providers=['CPUExecutionProvider'])  # Ensure CPU execution provider
+
+        # Adjusted ONNXRuntime session
+        sess = onnxruntime.InferenceSession(onnxFile, providers=['CPUExecutionProvider'])  
         testInput = np.array([1.0, 1.0, 1.0, 100.0, 1.0], dtype=np.float32).reshape(1, -1)
 
         # ONNX evaluation
