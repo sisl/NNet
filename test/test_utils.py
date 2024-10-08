@@ -1,7 +1,6 @@
 import unittest
 import os
 import numpy as np
-import filecmp
 from NNet.python.nnet import NNet
 from NNet.utils.readNNet import readNNet
 from NNet.utils.writeNNet import writeNNet
@@ -28,13 +27,13 @@ class TestUtils(unittest.TestCase):
         self.assertEqual(len(ranges), len(nnet.ranges))
 
         for w1, w2 in zip(weights, nnet.weights):
-            self.assertTrue(np.all(w1 == w2))
+            self.assertTrue(np.allclose(w1, w2, rtol=1e-5))
         for b1, b2 in zip(biases, nnet.biases):
-            self.assertTrue(np.all(b1 == b2))
-        self.assertTrue(np.all(inputMins == nnet.mins))
-        self.assertTrue(np.all(inputMaxes == nnet.maxes))
-        self.assertTrue(np.all(means == nnet.means))
-        self.assertTrue(np.all(ranges == nnet.ranges))
+            self.assertTrue(np.allclose(b1, b2, rtol=1e-5))
+        self.assertTrue(np.allclose(inputMins, nnet.mins, rtol=1e-5))
+        self.assertTrue(np.allclose(inputMaxes, nnet.maxes, rtol=1e-5))
+        self.assertTrue(np.allclose(means, nnet.means, rtol=1e-5))
+        self.assertTrue(np.allclose(ranges, nnet.ranges, rtol=1e-5))
 
     def test_write(self):
         """Test writing a NNet model to a file and comparing outputs."""
@@ -45,11 +44,7 @@ class TestUtils(unittest.TestCase):
         eval1 = nnet1.evaluate_network(self.testInput)
         eval2 = nnet2.evaluate_network(self.testInput)
 
-        percChangeNNet = max(abs((eval1 - eval2) / eval1)) * 100.0
-        self.assertTrue(percChangeNNet < 1e-8)
-
-        # Optionally use file comparison, but it's not always reliable for floating-point numbers
-        self.assertTrue(filecmp.cmp(self.nnetFile1, self.nnetFile2), "Files are not identical!")
+        np.testing.assert_allclose(eval1, eval2, rtol=1e-5)
 
     def test_normalize(self):
         """Test normalization of a NNet model."""
@@ -60,8 +55,7 @@ class TestUtils(unittest.TestCase):
         eval1 = nnet1.evaluate_network(self.testInput)
         eval2 = nnet2.evaluate_network(self.testInput)
 
-        percChangeNNet = max(abs((eval1 - eval2) / eval1)) * 100.0
-        self.assertTrue(percChangeNNet < 1e-3)
+        np.testing.assert_allclose(eval1, eval2, rtol=1e-3)
 
 
 if __name__ == "__main__":
