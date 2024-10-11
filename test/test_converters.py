@@ -7,7 +7,6 @@ from NNet.converters.onnx2nnet import onnx2nnet
 from NNet.converters.pb2nnet import pb2nnet
 from NNet.converters.nnet2pb import nnet2pb
 from NNet.python.nnet import NNet
-from NNet.utils.writeNNet import writeNNet
 import tensorflow as tf
 
 
@@ -78,7 +77,7 @@ class TestConverters(unittest.TestCase):
         # Load models and validate
         nnet = NNet(self.nnetFile)
         nnet2 = NNet(nnetFile2)
-        
+
         # Read TensorFlow PB file and evaluate the model using TensorFlow
         with tf.io.gfile.GFile(pbFile, "rb") as f:
             graph_def = tf.compat.v1.GraphDef()
@@ -86,7 +85,7 @@ class TestConverters(unittest.TestCase):
 
         with tf.compat.v1.Session(graph=tf.Graph()) as sess:
             tf.import_graph_def(graph_def, name="")
-            
+
             try:
                 inputTensor = sess.graph.get_tensor_by_name("input_1:0")  # Adjust name if needed
                 outputTensor = sess.graph.get_tensor_by_name("dense_1/BiasAdd:0")  # Adjust name if needed
