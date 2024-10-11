@@ -29,10 +29,10 @@ def nnet2onnx(nnetFile, onnxFile="", outputVar="y_out", inputVar="X", normalizeN
 
     print(f"Input size: {inputSize}, Output size: {outputSize}, Number of layers: {numLayers}")
 
-    # Default ONNX filename if none specified
+    # Default ONNX filename if none specified (fix double dot issue)
     if not onnxFile:
-        onnxFile = f"{nnetFile[:-5]}.onnx"  # Changed to avoid the double dot issue
-
+        onnxFile = f"{nnetFile[:-5]}.onnx"  # Ensures no double dots
+    
     # Initialize graph inputs and outputs
     inputs = [helper.make_tensor_value_info(inputVar, TensorProto.FLOAT, [None, inputSize])]
     outputs = [helper.make_tensor_value_info(outputVar, TensorProto.FLOAT, [None, outputSize])]
@@ -45,9 +45,14 @@ def nnet2onnx(nnetFile, onnxFile="", outputVar="y_out", inputVar="X", normalizeN
         print(f"Layer {i}: Weight shape {weights[i].shape}, Bias shape {biases[i].shape}")
 
         # Ensure dimensions match for matrix multiplication
-        if i > 0 and weights[i].shape[1] != weights[i - 1].shape[0]:
-            print(f"Error: Shape mismatch between layers {i-1} and {i} in weights.")
-            return
+        if i == 0:  # Check if the first layer matches input size
+            if weights[i].shape[1] != inputSize:
+                print(f"Error: The input size {inputSize} does not match the first layer's expected input size {weights[i].shape[1]}.")
+                return
+        else:
+            if weights[i].shape[1] != weights[i - 1].shape[0]:
+                print(f"Error: Shape mismatch between layers {i-1} and {i} in weights.")
+                return
 
         # Use outputVar for the last layer
         outputName = f"H{i}" if i < numLayers - 1 else outputVar
@@ -73,7 +78,7 @@ def nnet2onnx(nnetFile, onnxFile="", outputVar="y_out", inputVar="X", normalizeN
 
     # Save the ONNX model
     try:
-        onnx.save(model_def, onnxFile)
+        onnx.save_model(model_def, onnxFile)
         print(f"ONNX model saved successfully at {onnxFile}")
     except Exception as e:
         print(f"Error saving the ONNX model: {e}")
