@@ -9,7 +9,6 @@ from NNet.converters.nnet2pb import nnet2pb
 from NNet.python.nnet import NNet
 from NNet.utils.writeNNet import writeNNet
 import tensorflow as tf
-from tensorflow.python.framework.convert_to_constants import convert_variables_to_constants_v2
 
 
 class TestConverters(unittest.TestCase):
@@ -56,6 +55,8 @@ class TestConverters(unittest.TestCase):
         nnetEval = nnet.evaluate_network(testInput[0])  # NNet expects 1D array
         nnetEval2 = nnet2.evaluate_network(testInput[0])
 
+        # Ensure the dimensions match before asserting
+        self.assertEqual(onnxEval.shape, nnetEval.shape, "ONNX output shape mismatch")
         np.testing.assert_allclose(nnetEval, onnxEval.flatten(), rtol=1e-5)
         np.testing.assert_allclose(nnetEval, nnetEval2, rtol=1e-5)
 
@@ -87,8 +88,8 @@ class TestConverters(unittest.TestCase):
             tf.import_graph_def(graph_def, name="")
             
             try:
-                inputTensor = sess.graph.get_tensor_by_name("input:0")  # Adjust name if needed
-                outputTensor = sess.graph.get_tensor_by_name("y_out:0")  # Adjust name if needed
+                inputTensor = sess.graph.get_tensor_by_name("input_1:0")  # Adjust name if needed
+                outputTensor = sess.graph.get_tensor_by_name("dense_1/BiasAdd:0")  # Adjust name if needed
             except KeyError as e:
                 self.fail(f"Tensor not found in graph: {e}")
 
@@ -103,6 +104,8 @@ class TestConverters(unittest.TestCase):
         nnetEval = nnet.evaluate_network(testInput[0])  # NNet expects 1D array
         nnetEval2 = nnet2.evaluate_network(testInput[0])
 
+        # Ensure the dimensions match before asserting
+        self.assertEqual(pbEval.shape, nnetEval.shape, "PB output shape mismatch")
         np.testing.assert_allclose(nnetEval, pbEval.flatten(), rtol=1e-5)
         np.testing.assert_allclose(nnetEval, nnetEval2, rtol=1e-5)
 
