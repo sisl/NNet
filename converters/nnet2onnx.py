@@ -8,13 +8,6 @@ from NNet.utils.normalizeNNet import normalizeNNet
 def nnet2onnx(nnetFile, onnxFile="", outputVar="y_out", inputVar="X", normalizeNetwork=False):
     """
     Convert a .nnet file to ONNX format.
-
-    Args:
-        nnetFile (str): .nnet file to convert to ONNX.
-        onnxFile (str, optional): Name for the created .onnx file. Defaults to the name of the input file with an .onnx extension.
-        outputVar (str, optional): Name of the output variable in ONNX. Default is "y_out".
-        inputVar (str, optional): Name of the input variable in ONNX. Default is "X".
-        normalizeNetwork (bool, optional): If True, adapt the network weights and biases so that networks and inputs do not need to be normalized. Default is False.
     """
     try:
         if normalizeNetwork:
@@ -34,9 +27,11 @@ def nnet2onnx(nnetFile, onnxFile="", outputVar="y_out", inputVar="X", normalizeN
     outputSize = weights[-1].shape[0]
     numLayers = len(weights)
 
+    print(f"Input size: {inputSize}, Output size: {outputSize}, Number of layers: {numLayers}")
+
     # Default ONNX filename if none specified
     if not onnxFile:
-        onnxFile = f"{nnetFile[:-4]}.onnx"
+        onnxFile = f"{nnetFile[:-5]}.onnx"  # Changed to avoid the double dot issue
 
     # Initialize graph inputs and outputs
     inputs = [helper.make_tensor_value_info(inputVar, TensorProto.FLOAT, [None, inputSize])]
@@ -46,6 +41,9 @@ def nnet2onnx(nnetFile, onnxFile="", outputVar="y_out", inputVar="X", normalizeN
 
     # Loop through each layer of the network and add operations and initializers
     for i in range(numLayers):
+        # Print debug information about the layer's weight and bias shapes
+        print(f"Layer {i}: Weight shape {weights[i].shape}, Bias shape {biases[i].shape}")
+
         # Ensure dimensions match for matrix multiplication
         if i > 0 and weights[i].shape[1] != weights[i - 1].shape[0]:
             print(f"Error: Shape mismatch between layers {i-1} and {i} in weights.")
