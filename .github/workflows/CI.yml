@@ -1,33 +1,27 @@
-name: Python Test Workflow
+name: Run Tests
 
-on: [push, pull_request]
+on:
+  push:
+    branches:
+      - main
+      - feature-branch
+  pull_request:
+    branches:
+      - main
 
 jobs:
   test:
     runs-on: ubuntu-latest
-
-    strategy:
-      matrix:
-        python-version: ["3.8", "3.9", "3.10"]
-
     steps:
-      # Step 1: Check out the repository
-      - name: Check out repository
-        uses: actions/checkout@v3
-
-      # Step 2: Set up Python
-      - name: Set up Python ${{ matrix.python-version }}
-        uses: actions/setup-python@v4
-        with:
-          python-version: ${{ matrix.python-version }}
-
-      # Step 3: Install dependencies from test_requirements.txt
-      - name: Install dependencies
-        run: |
-          pip install --upgrade pip
-          pip install -r test_requirements.txt
-
-      # Step 4: Run tests using pytest
-      - name: Run tests
-        run: |
-          pytest --maxfail=5 --disable-warnings
+    - uses: actions/checkout@v2
+    - name: Set up Python 3.10
+      uses: actions/setup-python@v2
+      with:
+        python-version: '3.10'
+    - name: Install dependencies
+      run: |
+        pip install -r requirements.txt
+        pip install pytest
+    - name: Run tests
+      run: |
+        pytest --maxfail=5 --disable-warnings
