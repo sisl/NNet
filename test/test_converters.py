@@ -41,12 +41,7 @@ class TestConverters(unittest.TestCase):
         except Exception as e:
             self.fail(f"Failed to create ONNX inference session: {e}")
 
-        # Get input shape from the ONNX model and adjust test input
-        onnx_input_shape = sess.get_inputs()[0].shape
-        print(f"Expected input shape for ONNX model: {onnx_input_shape}")
-
-        # Adjust test input to match expected shape
-        testInput = np.ones((1, onnx_input_shape[1]), dtype=np.float32)
+        testInput = np.array([1.0, 1.0, 1.0, 100.0, 1.0], dtype=np.float32).reshape(1, -1)
 
         # ONNX evaluation
         onnxInputName = sess.get_inputs()[0].name
@@ -91,18 +86,13 @@ class TestConverters(unittest.TestCase):
         with tf.compat.v1.Session(graph=tf.Graph()) as sess:
             tf.import_graph_def(graph_def, name="")
 
-            # List all tensors in the graph to get the correct tensor names
-            for op in sess.graph.get_operations():
-                print(op.name)
-
-            # Adjust the tensor names based on what is available in your graph
             try:
-                inputTensor = sess.graph.get_tensor_by_name("input_1:0")  # Adjust name if needed
-                outputTensor = sess.graph.get_tensor_by_name("dense_1/BiasAdd:0")  # Adjust name if needed
+                inputTensor = sess.graph.get_tensor_by_name("input:0")  # Adjust name if needed
+                outputTensor = sess.graph.get_tensor_by_name("y_out:0")  # Adjust name if needed
             except KeyError as e:
                 self.fail(f"Tensor not found in graph: {e}")
 
-            testInput = np.ones((1, 5), dtype=np.float32)
+            testInput = np.array([1.0, 1.0, 1.0, 100.0, 1.0], dtype=np.float32).reshape(1, -1)
 
             try:
                 pbEval = sess.run(outputTensor, feed_dict={inputTensor: testInput})[0]
