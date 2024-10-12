@@ -3,6 +3,7 @@ import numpy as np
 import sys
 from tensorflow.python.framework.convert_to_constants import convert_variables_to_constants_v2
 import os
+
 os.environ["CUDA_VISIBLE_DEVICES"] = "-1"  # Force CPU usage
 from NNet.utils.readNNet import readNNet
 from NNet.utils.normalizeNNet import normalizeNNet
@@ -43,8 +44,8 @@ def nnet2pb(nnetFile, pbFile="", output_node_names="y_out", normalizeNetwork=Fal
     currentTensor = tf.compat.v1.placeholder(tf.float32, [None, inputSize], name='input')
 
     for i, (W_value, b_value) in enumerate(zip(weights, biases)):
-        W = tf.compat.v1.get_variable(f"W{i}", shape=W_value.T.shape)
-        b = tf.compat.v1.get_variable(f"b{i}", shape=b_value.shape)
+        W = tf.Variable(W_value.T, dtype=tf.float32, name=f"W{i}")
+        b = tf.Variable(b_value, dtype=tf.float32, name=f"b{i}")
 
         # Apply ReLU activation except for the last layer
         if i != len(weights) - 1:
@@ -52,9 +53,8 @@ def nnet2pb(nnetFile, pbFile="", output_node_names="y_out", normalizeNetwork=Fal
         else:
             currentTensor = tf.add(tf.matmul(currentTensor, W), b, name=output_node_names)
 
-        # Assign values to the variables
-        sess.run(tf.compat.v1.assign(W, W_value.T))
-        sess.run(tf.compat.v1.assign(b, b_value))
+    # Initialize all variables
+    sess.run(tf.compat.v1.global_variables_initializer())
 
     # Freeze the graph and save the .pb file
     try:
@@ -77,13 +77,13 @@ def freeze_graph_v2(sess, output_graph_name, output_node_names):
         input_graph_def = sess.graph.as_graph_def()
 
         # Convert variables to constants using the TensorFlow 2.x method
-        output_graph_def = convert_variables_to_constants_v2(
-            sess, input_graph_def, output_node_names.split(",")
+        frozen_func = convert_variables_to_constants_v2(
+            tf.function(lambda: sess.graph), output_node_names.split(",")
         )
 
         # Serialize and save the frozen graph
         with tf.io.gfile.GFile(output_graph_name, "wb") as f:
-            f.write(output_graph_def.SerializeToString())
+            f.write(frozen_func.graph.as_graph_def().SerializeToString())
     except Exception as e:
         print(f"Error during graph freezing or file writing: {e}")
         raise
