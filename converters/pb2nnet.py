@@ -27,7 +27,7 @@ def processGraph(op, input_op, foundInputFlag, weights, biases):
         # If constant, extract values and add to weight or bias list depending on shape
         param = tensor_util.MakeNdarray(op.node_def.attr['value'].tensor)
         if len(param.shape) > 1:
-            weights.append(param.T)
+            weights.append(param.T)  # Transpose the weights for compatibility
         else:
             biases.append(param)
     
