@@ -76,10 +76,15 @@ def freeze_graph_v2(sess, output_graph_name, output_node_names):
         # Get the graph definition
         input_graph_def = sess.graph.as_graph_def()
 
-        # Convert variables to constants using the TensorFlow 2.x method
-        frozen_func = convert_variables_to_constants_v2(
-            tf.function(lambda: sess.graph), output_node_names.split(",")
-        )
+        # Convert the session graph into a ConcreteFunction
+        @tf.function
+        def model_function():
+            tf.import_graph_def(input_graph_def, name="")
+
+        concrete_function = model_function.get_concrete_function()
+
+        # Convert variables to constants
+        frozen_func = convert_variables_to_constants_v2(concrete_function)
 
         # Serialize and save the frozen graph
         with tf.io.gfile.GFile(output_graph_name, "wb") as f:
