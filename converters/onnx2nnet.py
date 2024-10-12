@@ -20,7 +20,7 @@ def onnx2nnet(onnxFile, inputMins=None, inputMaxes=None, means=None, ranges=None
     """
     # Set default nnetFile name if none provided
     if not nnetFile:
-        nnetFile = f"{onnxFile[:-4]}.nnet"
+        nnetFile = f"{onnxFile[:-5]}.nnet"  # Fixed file extension slicing
 
     try:
         model = onnx.load(onnxFile)
@@ -70,8 +70,8 @@ def onnx2nnet(onnxFile, inputMins=None, inputMaxes=None, means=None, ranges=None
                 inputName = node.output[0]
 
             else:
-                print(f"Node operation type {node.op_type} not supported!")
-                return
+                print(f"Warning: Node operation type {node.op_type} not supported. Skipping node.")
+                continue  # Skip unsupported nodes instead of returning
 
             # Terminate once we find the output node
             if outputName == inputName:
@@ -79,7 +79,7 @@ def onnx2nnet(onnxFile, inputMins=None, inputMaxes=None, means=None, ranges=None
 
     # Check if weights and biases were successfully extracted
     if outputName == inputName and len(weights) == len(biases) > 0:
-        inputSize = weights[0].shape[0]
+        inputSize = weights[0].shape[1]  # Fixed to column dimension for input size
 
         # Set default values for input bounds and normalization constants if not provided
         inputMins = inputMins if inputMins is not None else [np.finfo(np.float32).min] * inputSize
