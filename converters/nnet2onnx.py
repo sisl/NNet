@@ -44,7 +44,10 @@ def nnet2onnx(nnetFile, onnxFile="", outputVar="y_out", inputVar="X", normalizeN
         print(f"Layer {i}: Weight shape {weights[i].shape}, Bias shape {biases[i].shape}")
 
         # Ensure dimensions match for matrix multiplication
-        if i > 0 and weights[i].shape[1] != weights[i - 1].shape[0]:
+        if i == 0 and weights[i].shape[1] != inputSize:
+            print(f"Error: Shape mismatch at input layer. Expected {inputSize}, got {weights[i].shape[1]}")
+            return
+        elif i > 0 and weights[i].shape[1] != weights[i - 1].shape[0]:
             print(f"Error: Shape mismatch between layers {i-1} and {i} in weights.")
             return
 
@@ -76,4 +79,3 @@ def nnet2onnx(nnetFile, onnxFile="", outputVar="y_out", inputVar="X", normalizeN
         print(f"ONNX model saved successfully at {onnxFile}")
     except Exception as e:
         print(f"Error saving the ONNX model: {e}")
-
