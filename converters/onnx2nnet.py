@@ -4,7 +4,10 @@ import onnx
 from onnx import numpy_helper
 from NNet.utils.writeNNet import writeNNet
 
-def onnx2nnet(onnx_file, input_mins=None, input_maxes=None, means=None, ranges=None, nnet_file="", input_name="", output_name=""):
+# Corrected function signature in onnx2nnet.py
+def onnx2nnet(onnxFile, inputMins=None, inputMaxes=None, means=None, ranges=None, nnetFile="", inputName="", outputName=""):
+    # Rest of your function logic remains the same
+
     '''
     Convert an ONNX model to .nnet format
     
