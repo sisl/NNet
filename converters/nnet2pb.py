@@ -12,7 +12,7 @@ from NNet.utils.normalizeNNet import normalizeNNet
 # Enable TensorFlow 1.x functionalities in TensorFlow 2.x
 tf.compat.v1.disable_eager_execution()
 
-def nnet2pb(nnetFile, pbFile=None, output_node_names="y_out", normalizeNetwork=False):
+def nnet2pb(nnetFile, pbFile="", output_node_names="y_out", normalizeNetwork=False):
     """
     Convert a .nnet file into a frozen TensorFlow graph and save it to a .pb file.
 
@@ -33,9 +33,10 @@ def nnet2pb(nnetFile, pbFile=None, output_node_names="y_out", normalizeNetwork=F
 
     inputSize = weights[0].shape[1]
 
-    # Check if pbFile is None and assign a default value
-    if pbFile is None:
-        pbFile = f"{nnetFile[:-5]}.pb"  # Avoid double-dot issue
+ # Fixed PB filename generation
+if not pbFile:
+    pbFile = f"{nnetFile[:-5]}.pb"  # Adjusted to prevent '..pb'
+
 
     # Reset TensorFlow graph and initialize session
     tf.compat.v1.reset_default_graph()
@@ -87,7 +88,7 @@ def freeze_graph_v2(sess, output_graph_name, output_node_names):
         # Convert variables to constants
         frozen_func = convert_variables_to_constants_v2(concrete_function)
 
-        # Print nodes for debugging
+        # Print nodes for debugging (Optional)
         print("Frozen model layers:")
         for op in frozen_func.graph.get_operations():
             print(op.name)
@@ -103,8 +104,10 @@ if __name__ == '__main__':
     # Read user inputs and run nnet2pb function
     if len(sys.argv) > 1:
         nnetFile = sys.argv[1]
-        pbFile = sys.argv[2] if len(sys.argv) > 2 else None
+        pbFile = sys.argv[2] if len(sys.argv) > 2 else ""
         output_node_names = sys.argv[3] if len(sys.argv) > 3 else "y_out"
         nnet2pb(nnetFile, pbFile, output_node_names)
     else:
         print("Error: Need to specify which .nnet file to convert to TensorFlow frozen graph!")
+
+
