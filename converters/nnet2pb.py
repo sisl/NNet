@@ -37,7 +37,6 @@ def nnet2pb(nnetFile, pbFile="", output_node_names="y_out", normalizeNetwork=Fal
     if not pbFile:
         pbFile = f"{nnetFile[:-5]}.pb"  # Adjusted to prevent '..pb'
 
-
     # Reset TensorFlow graph and initialize session
     tf.compat.v1.reset_default_graph()
     sess = tf.compat.v1.Session()
@@ -109,5 +108,3 @@ if __name__ == '__main__':
         nnet2pb(nnetFile, pbFile, output_node_names)
     else:
         print("Error: Need to specify which .nnet file to convert to TensorFlow frozen graph!")
-
-
