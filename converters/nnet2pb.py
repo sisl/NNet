@@ -33,9 +33,9 @@ def nnet2pb(nnetFile, pbFile="", output_node_names="y_out", normalizeNetwork=Fal
 
     inputSize = weights[0].shape[1]
 
- # Fixed PB filename generation
-if not pbFile:
-    pbFile = f"{nnetFile[:-5]}.pb"  # Adjusted to prevent '..pb'
+    # Fixed PB filename generation INSIDE the function scope
+    if not pbFile:
+        pbFile = f"{nnetFile[:-5]}.pb"  # Adjusted to prevent '..pb'
 
 
     # Reset TensorFlow graph and initialize session
