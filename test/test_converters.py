@@ -9,7 +9,6 @@ from NNet.converters.nnet2pb import nnet2pb
 from NNet.python.nnet import NNet
 import tensorflow as tf
 
-
 class TestConverters(unittest.TestCase):
 
     def setUp(self):
@@ -18,8 +17,9 @@ class TestConverters(unittest.TestCase):
 
     def test_onnx(self):
         """Test conversion between NNet and ONNX format."""
-        onnxFile = self.nnetFile[:-4] + ".onnx"
-        nnetFile2 = self.nnetFile[:-4] + "v2.nnet"
+        # Fix filename generation to avoid double dots
+        onnxFile = self.nnetFile.replace(".nnet", ".onnx")
+        nnetFile2 = self.nnetFile.replace(".nnet", "v2.nnet")
 
         # Convert NNet to ONNX
         nnet2onnx(self.nnetFile, onnxFile=onnxFile, normalizeNetwork=True)
@@ -28,7 +28,7 @@ class TestConverters(unittest.TestCase):
         self.assertTrue(os.path.exists(onnxFile), f"{onnxFile} not found!")
 
         # Convert ONNX back to NNet
-        onnx2nnet(onnxFile, nnetFile=nnetFile2)
+        onnx2nnet(onnxFile, nnetFile=nnetFile2)  # Match function signature
         self.assertTrue(os.path.exists(nnetFile2), f"{nnetFile2} not found!")
 
         # Load models and validate
@@ -61,8 +61,9 @@ class TestConverters(unittest.TestCase):
 
     def test_pb(self):
         """Test conversion between NNet and TensorFlow Protocol Buffer (PB) format."""
-        pbFile = self.nnetFile[:-4] + ".pb"
-        nnetFile2 = self.nnetFile[:-4] + "v2.nnet"
+        # Fix filename generation to avoid double dots
+        pbFile = self.nnetFile.replace(".nnet", ".pb")
+        nnetFile2 = self.nnetFile.replace(".nnet", "v2.nnet")
 
         # Convert NNet to TensorFlow PB
         nnet2pb(self.nnetFile, pbFile=pbFile, normalizeNetwork=True)
