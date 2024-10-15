@@ -18,15 +18,12 @@ def onnx2nnet(onnxFile, inputMins=None, inputMaxes=None, means=None, ranges=None
         inputName (str): Optional, name of the input node.
         outputName (str): Optional, name of the output node.
     """
-    # Set a default name for the .nnet file if not provided
     if not nnetFile:
         nnetFile = onnxFile.replace('.onnx', '.nnet')
 
-    # Load the ONNX model
     model = onnx.load(onnxFile)
     graph = model.graph
 
-    # Set input and output node names if not provided
     if not inputName:
         assert len(graph.input) == 1, "ONNX graph must have exactly one input."
         inputName = graph.input[0].name
@@ -36,33 +33,46 @@ def onnx2nnet(onnxFile, inputMins=None, inputMaxes=None, means=None, ranges=None
         outputName = graph.output[0].name
 
     # Extract weights and biases from the ONNX graph
-    weights, biases = extract_weights_and_biases(graph, inputName, outputName)
+    weights, biases = extract_weights_and_biases(graph)
 
-    # Verify the extracted parameters
     if weights and biases and len(weights) == len(biases):
         inputSize = weights[0].shape[1]
 
-        # Default normalization values if not provided
         inputMins = inputMins or [float('-inf')] * inputSize
         inputMaxes = inputMaxes or [float('inf')] * inputSize
         means = means or [0.0] * inputSize
         ranges = ranges or [1.0] * inputSize
 
-        # Write the NNet file
         writeNNet(weights, biases, inputMins, inputMaxes, means, ranges, nnetFile)
         print(f"ONNX model converted successfully to {nnetFile}.")
     else:
         raise ValueError("Failed to extract valid weights and biases from the ONNX model.")
 
+def extract_weights_and_biases(graph):
+    """Extract weights and biases from the ONNX graph."""
+    weights = []
+    biases = []
+
+    for node in graph.node:
+        if node.op_type == 'MatMul':
+            weights.append(_get_weights(graph, node))
+        elif node.op_type == 'Add':
+            biases.append(_get_biases(graph, node))
+
+    if len(weights) != len(biases):
+        raise ValueError("Mismatch between weights and biases in the ONNX graph.")
+
+    return weights, biases
+
 def _get_weights(graph, node):
-    ''' Helper function to extract weights from a MatMul node. '''
+    """Helper to extract weights from a MatMul node."""
     for initializer in graph.initializer:
         if initializer.name == node.input[1]:
             return numpy_helper.to_array(initializer)
     raise ValueError(f"Could not find weights for node {node.name}")
 
 def _get_biases(graph, node):
-    ''' Helper function to extract biases from an Add node. '''
+    """Helper to extract biases from an Add node."""
     for initializer in graph.initializer:
         if initializer.name == node.input[1]:
             return numpy_helper.to_array(initializer)
@@ -73,6 +83,6 @@ if __name__ == '__main__':
         onnx_file = sys.argv[1]
         nnet_file = sys.argv[2] if len(sys.argv) > 2 else ""
         print("WARNING: Using default values for input bounds and normalization.")
-        onnx2nnet(onnx_file, nnet_file=nnet_file)
+        onnx2nnet(onnx_file, nnetFile=nnet_file)
     else:
         print("Usage: python onnx2nnet.py <onnx_file> [<nnet_file>]")
