@@ -33,9 +33,10 @@ def nnet2pb(nnetFile, pbFile="", output_node_names="y_out", normalizeNetwork=Fal
 
     inputSize = weights[0].shape[1]
 
-    # Default pb filename if none is specified
-    if not pbFile:
-        pbFile = f"{nnetFile[:-5]}.pb"  # Fix double-dot issue
+ # Fixed PB filename generation
+if not pbFile:
+    pbFile = f"{nnetFile[:-5]}.pb"  # Adjusted to prevent '..pb'
+
 
     # Reset TensorFlow graph and initialize session
     tf.compat.v1.reset_default_graph()
