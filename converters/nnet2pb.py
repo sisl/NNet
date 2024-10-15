@@ -33,10 +33,14 @@ def nnet2pb(nnetFile, pbFile="", output_node_names="y_out", normalizeNetwork=Fal
 
     inputSize = weights[0].shape[1]
 
- # Fixed PB filename generation
-if not pbFile:
-    pbFile = f"{nnetFile[:-5]}.pb"  # Adjusted to prevent '..pb'
+def nnet2pb(nnetFile, pbFile="", output_node_names="y_out", normalizeNetwork=False):
+    # If pbFile isn't provided, generate a default one
+    if not pbFile:
+        pbFile = f"{nnetFile[:-5]}.pb"  # Avoids '..pb'
 
+    # Proceed with the rest of the code to freeze the graph
+    freeze_graph_v2(sess, pbFile, output_node_names)
+    print(f"Successfully saved TensorFlow frozen graph to {pbFile}")
 
     # Reset TensorFlow graph and initialize session
     tf.compat.v1.reset_default_graph()
