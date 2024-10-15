@@ -5,6 +5,7 @@ from tensorflow.python.framework.convert_to_constants import convert_variables_t
 import os
 
 os.environ["CUDA_VISIBLE_DEVICES"] = "-1"  # Force CPU usage
+
 from NNet.utils.readNNet import readNNet
 from NNet.utils.normalizeNNet import normalizeNNet
 
@@ -34,7 +35,7 @@ def nnet2pb(nnetFile, pbFile="", output_node_names="y_out", normalizeNetwork=Fal
 
     # Default pb filename if none is specified
     if not pbFile:
-        pbFile = f"{nnetFile[:-4]}.pb"
+        pbFile = f"{nnetFile[:-5]}.pb"  # Fix double-dot issue
 
     # Reset TensorFlow graph and initialize session
     tf.compat.v1.reset_default_graph()
@@ -85,6 +86,11 @@ def freeze_graph_v2(sess, output_graph_name, output_node_names):
 
         # Convert variables to constants
         frozen_func = convert_variables_to_constants_v2(concrete_function)
+
+        # Print nodes for debugging (Optional)
+        print("Frozen model layers:")
+        for op in frozen_func.graph.get_operations():
+            print(op.name)
 
         # Serialize and save the frozen graph
         with tf.io.gfile.GFile(output_graph_name, "wb") as f:
