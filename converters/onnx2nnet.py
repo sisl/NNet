@@ -4,90 +4,84 @@ import onnx
 from onnx import numpy_helper
 from NNet.utils.writeNNet import writeNNet
 
-# Corrected function signature in onnx2nnet.py
 def onnx2nnet(onnxFile, inputMins=None, inputMaxes=None, means=None, ranges=None, nnetFile="", inputName="", outputName=""):
-    # Rest of your function logic remains the same
+    """
+    Convert an ONNX model to .nnet format.
 
-    '''
-    Convert an ONNX model to .nnet format
-    
     Args:
-        onnx_file (str): Path to the ONNX file.
-        input_mins (list): Optional, minimum values for each neural network input.
-        input_maxes (list): Optional, maximum values for each neural network input.
-        means (list): Optional, mean values for normalization of inputs/outputs.
-        ranges (list): Optional, range values for normalization of inputs/outputs.
-        nnet_file (str): Optional, name for the output .nnet file.
-        input_name (str): Optional, name of the input operation.
-        output_name (str): Optional, name of the output operation.
-    '''
-    if not nnet_file:
-        nnet_file = onnx_file.replace('.onnx', '.nnet')
+        onnxFile (str): Path to the ONNX file.
+        inputMins (list): Optional, minimum values for each input.
+        inputMaxes (list): Optional, maximum values for each input.
+        means (list): Optional, mean values for normalization.
+        ranges (list): Optional, range values for normalization.
+        nnetFile (str): Optional, name of the output .nnet file.
+        inputName (str): Optional, name of the input node.
+        outputName (str): Optional, name of the output node.
+    """
+    # Set default .nnet filename if not provided
+    if not nnetFile:
+        nnetFile = onnxFile.replace('.onnx', '.nnet')
 
-    # Load ONNX model
-    model = onnx.load(onnx_file)
+    # Load the ONNX model and graph
+    model = onnx.load(onnxFile)
     graph = model.graph
 
     # Set input and output names if not provided
-    if not input_name:
-        assert len(graph.input) == 1, "Graph should have one input."
-        input_name = graph.input[0].name
+    if not inputName:
+        assert len(graph.input) == 1, "ONNX graph must have exactly one input."
+        inputName = graph.input[0].name
 
-    if not output_name:
-        assert len(graph.output) == 1, "Graph should have one output."
-        output_name = graph.output[0].name
+    if not outputName:
+        assert len(graph.output) == 1, "ONNX graph must have exactly one output."
+        outputName = graph.output[0].name
 
+    # Extract weights and biases
+    weights, biases = extract_weights_and_biases(graph)
+
+    if not weights or not biases or len(weights) != len(biases):
+        raise ValueError("Failed to extract valid weights and biases from the ONNX model.")
+
+    inputSize = weights[0].shape[1]
+
+    # Default normalization values
+    inputMins = inputMins or [float('-inf')] * inputSize
+    inputMaxes = inputMaxes or [float('inf')] * inputSize
+    means = means or [0.0] * inputSize
+    ranges = ranges or [1.0] * inputSize
+
+    # Write the .nnet file
+    writeNNet(weights, biases, inputMins, inputMaxes, means, ranges, nnetFile)
+    print(f"ONNX model successfully converted to {nnetFile}.")
+
+def extract_weights_and_biases(graph):
+    """
+    Extract weights and biases from the ONNX graph.
+    
+    Returns:
+        tuple: (weights, biases) lists extracted from the graph.
+    """
     weights = []
     biases = []
 
-    # Process nodes in the graph
     for node in graph.node:
-        if input_name in node.input:
-            if node.op_type == 'MatMul':
-                weights.append(_get_weights(graph, node))
-            elif node.op_type == 'Add':
-                biases.append(_get_biases(graph, node))
-            elif node.op_type == 'Relu':
-                continue
-            else:
-                print(f"Node operation type {node.op_type} not supported!")
-                return False
+        if node.op_type == "MatMul":
+            weight = _get_weights(graph, node)
+            weights.append(weight)
+        elif node.op_type == "Add":
+            bias = _get_biases(graph, node)
+            biases.append(bias)
 
-            # Check if we have reached the output node
-            if output_name == node.output[0]:
-                break
-
-    # Ensure extracted weights and biases match
-    if len(weights) > 0 and len(weights) == len(biases):
-        input_size = weights[0].shape[0]
-
-        # Set default values for input bounds and normalization
-        if input_mins is None:
-            input_mins = [np.finfo(np.float32).min] * input_size
-        if input_maxes is None:
-            input_maxes = [np.finfo(np.float32).max] * input_size
-        if means is None:
-            means = [0.0] * (input_size + 1)
-        if ranges is None:
-            ranges = [1.0] * (input_size + 1)
-
-        print(f"Successfully converted ONNX model '{onnx_file}' to NNet format '{nnet_file}'")
-        writeNNet(weights, biases, input_mins, input_maxes, means, ranges, nnet_file)
-    else:
-        print("Error: Could not extract weights and biases properly.")
-        return False
-
-    return True
+    return weights, biases
 
 def _get_weights(graph, node):
-    ''' Helper function to extract weights from a MatMul node. '''
+    """Helper function to extract weights from a MatMul node."""
     for initializer in graph.initializer:
         if initializer.name == node.input[1]:
             return numpy_helper.to_array(initializer)
     raise ValueError(f"Could not find weights for node {node.name}")
 
 def _get_biases(graph, node):
-    ''' Helper function to extract biases from an Add node. '''
+    """Helper function to extract biases from an Add node."""
     for initializer in graph.initializer:
         if initializer.name == node.input[1]:
             return numpy_helper.to_array(initializer)
@@ -95,9 +89,9 @@ def _get_biases(graph, node):
 
 if __name__ == '__main__':
     if len(sys.argv) > 1:
-        onnx_file = sys.argv[1]
-        nnet_file = sys.argv[2] if len(sys.argv) > 2 else ""
+        onnxFile = sys.argv[1]
+        nnetFile = sys.argv[2] if len(sys.argv) > 2 else ""
         print("WARNING: Using default values for input bounds and normalization.")
-        onnx2nnet(onnx_file, nnet_file=nnet_file)
+        onnx2nnet(onnxFile, nnetFile=nnetFile)
     else:
-        print("Usage: python onnx2nnet.py <onnx_file> [<nnet_file>]")
+        print("Usage: python onnx2nnet.py <onnxFile> [<nnetFile>]")
