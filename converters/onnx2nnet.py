@@ -32,8 +32,7 @@ def onnx2nnet(onnxFile, inputMins=None, inputMaxes=None, means=None, ranges=None
         assert len(graph.output) == 1, "ONNX graph must have exactly one output."
         outputName = graph.output[0].name
 
-    # Extract weights and biases from the ONNX graph
-    weights, biases = extract_weights_and_biases(graph)
+    weights, biases = extract_weights_and_biases(graph, inputName, outputName)
 
     if weights and biases and len(weights) == len(biases):
         inputSize = weights[0].shape[1]
@@ -48,31 +47,23 @@ def onnx2nnet(onnxFile, inputMins=None, inputMaxes=None, means=None, ranges=None
     else:
         raise ValueError("Failed to extract valid weights and biases from the ONNX model.")
 
-def extract_weights_and_biases(graph):
-    """Extract weights and biases from the ONNX graph."""
+def extract_weights_and_biases(graph, inputName, outputName):
     weights = []
     biases = []
-
     for node in graph.node:
-        if node.op_type == 'MatMul':
+        if node.op_type == "MatMul":
             weights.append(_get_weights(graph, node))
-        elif node.op_type == 'Add':
+        elif node.op_type == "Add":
             biases.append(_get_biases(graph, node))
-
-    if len(weights) != len(biases):
-        raise ValueError("Mismatch between weights and biases in the ONNX graph.")
-
     return weights, biases
 
 def _get_weights(graph, node):
-    """Helper to extract weights from a MatMul node."""
     for initializer in graph.initializer:
         if initializer.name == node.input[1]:
             return numpy_helper.to_array(initializer)
     raise ValueError(f"Could not find weights for node {node.name}")
 
 def _get_biases(graph, node):
-    """Helper to extract biases from an Add node."""
     for initializer in graph.initializer:
         if initializer.name == node.input[1]:
             return numpy_helper.to_array(initializer)
@@ -83,6 +74,6 @@ if __name__ == '__main__':
         onnx_file = sys.argv[1]
         nnet_file = sys.argv[2] if len(sys.argv) > 2 else ""
         print("WARNING: Using default values for input bounds and normalization.")
-        onnx2nnet(onnx_file, nnetFile=nnet_file)
+        onnx2nnet(onnx_file, nnet_file=nnet_file)
     else:
         print("Usage: python onnx2nnet.py <onnx_file> [<nnet_file>]")
