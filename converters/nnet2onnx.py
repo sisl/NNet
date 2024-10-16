@@ -22,11 +22,14 @@ def nnet2onnx(nnetFile, onnxFile="", outputVar="y_out", inputVar="X", normalizeN
     operations = []
     initializers = []
 
+    currentInputSize = inputSize  # Track input size for each layer
+
     for i in range(numLayers):
         outputName = f"H{i}" if i != numLayers - 1 else outputVar
 
-        if weights[i].shape[1] != inputSize:
-            raise ValueError(f"Weight matrix at layer {i} has incompatible shape: {weights[i].shape}. Expected input size {inputSize}.")
+        # Ensure the current layer's weights are compatible
+        if weights[i].shape[1] != currentInputSize:
+            raise ValueError(f"Weight matrix at layer {i} has incompatible shape: {weights[i].shape}. Expected input size {currentInputSize}.")
 
         operations.append(helper.make_node("MatMul", [f"W{i}", inputVar], [f"M{i}"]))
         initializers.append(numpy_helper.from_array(weights[i].astype(np.float32), name=f"W{i}"))
@@ -37,6 +40,7 @@ def nnet2onnx(nnetFile, onnxFile="", outputVar="y_out", inputVar="X", normalizeN
         if i < numLayers - 1:
             operations.append(helper.make_node("Relu", [outputName], [f"R{i}"]))
             inputVar = f"R{i}"
+            currentInputSize = weights[i].shape[0]  # Update input size for the next layer
 
     graph_proto = helper.make_graph(operations, "nnet2onnx_Model", inputs, outputs, initializers)
     model_def = helper.make_model(graph_proto)
