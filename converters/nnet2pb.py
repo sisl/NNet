@@ -50,8 +50,7 @@ def nnet2pb(nnetFile, pbFile="", output_node_names="y_out", normalizeNetwork=Fal
         # Initialize variables
         sess.run(tf.compat.v1.global_variables_initializer())
 
-        # Freeze the graph and save to a .pb file
-        freeze_graph(sess, pbFile, output_node_names)
+from tensorflow.python.framework.convert_to_constants import convert_variables_to_constants_v2
 
 def freeze_graph(sess, output_graph_name, output_node_names):
     '''
@@ -63,15 +62,11 @@ def freeze_graph(sess, output_graph_name, output_node_names):
         output_node_names (str): Name of the output operation(s), comma-separated if multiple.
     '''
     input_graph_def = sess.graph.as_graph_def()
-    output_graph_def = graph_util.convert_variables_to_constants(
-        sess, input_graph_def, output_node_names.split(",")
-    )
+    frozen_func = convert_variables_to_constants_v2(sess)
+    output_graph_def = frozen_func.graph.as_graph_def()
 
-    # Save the frozen graph
     with tf.io.gfile.GFile(output_graph_name, "wb") as f:
         f.write(output_graph_def.SerializeToString())
-
-    print(f"Saved frozen graph to {output_graph_name}")
 
 if __name__ == '__main__':
     # Read command-line arguments
