@@ -9,6 +9,7 @@ from NNet.converters.nnet2pb import nnet2pb
 from NNet.python.nnet import NNet
 import tensorflow as tf
 
+
 class TestConverters(unittest.TestCase):
 
     def setUp(self):
@@ -46,8 +47,15 @@ class TestConverters(unittest.TestCase):
         except Exception as e:
             self.fail(f"Failed to create ONNX inference session: {e}")
 
-        # Prepare test input
-        testInput = np.array([1.0, 1.0, 1.0, 100.0, 1.0], dtype=np.float32).reshape(1, -1)
+        # Prepare the test input
+        testInput = np.array([1.0, 1.0, 1.0, 100.0, 1.0], dtype=np.float32)
+
+        # Adjust the input shape based on the ONNX model's expected input shape
+        input_shape = sess.get_inputs()[0].shape
+        if len(input_shape) == 1:
+            testInput = testInput.flatten()
+        elif len(input_shape) == 2 and input_shape[0] == 1:
+            testInput = testInput.reshape(1, -1)
 
         # Perform inference using ONNX
         onnxInputName = sess.get_inputs()[0].name
@@ -96,12 +104,12 @@ class TestConverters(unittest.TestCase):
 
             # Retrieve input and output tensors
             try:
-                inputTensor = sess.graph.get_tensor_by_name("input:0")
+                inputTensor = sess.graph.get_tensor_by_name("x:0")
                 outputTensor = sess.graph.get_tensor_by_name("y_out:0")
             except KeyError as e:
                 self.fail(f"Tensor not found in graph: {e}")
 
-            # Prepare test input
+            # Prepare the test input
             testInput = np.array([1.0, 1.0, 1.0, 100.0, 1.0], dtype=np.float32).reshape(1, -1)
 
             # Perform inference using TensorFlow
