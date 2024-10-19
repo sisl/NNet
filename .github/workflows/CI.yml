@@ -1,38 +1,48 @@
-name: Python Package CI
+name: Run Tests and Coverage
 
 on:
   push:
     branches:
-      - main
+      - main  # Run on push to main branch
   pull_request:
     branches:
-      - main
+      - main  # Run on pull requests to main branch
 
 jobs:
-  build:
+  test:
     runs-on: ubuntu-latest
 
     steps:
-      - name: Checkout code
-        uses: actions/checkout@v3
+    - name: Check out the repository
+      uses: actions/checkout@v3  # Updated version for better performance
 
-      - name: Set up Python
-        uses: actions/setup-python@v4
-        with:
-          python-version: 3.10
+    - name: Set up Python
+      uses: actions/setup-python@v4  # Latest setup-python action
+      with:
+        python-version: '3.10'  # Explicitly setting Python 3.10
 
-      - name: Install dependencies
-        run: |
-          python -m pip install --upgrade pip
-          pip install -r requirements.txt
-          pip install pytest pytest-cov onnxruntime
+    - name: Install system dependencies
+      run: |
+        sudo apt-get update
+        sudo apt-get install -y libhdf5-dev libc-ares-dev libeigen3-dev  # TensorFlow dependencies
+    - name: Install Python dependencies
+      run: |
+        python -m pip install --upgrade pip
+        pip install -r test_requirements.txt  # Adjust if requirements are named differently
+    - name: Run pytest with coverage
+      run: |
+        pytest --maxfail=5 --disable-warnings --cov=. --cov-report=xml
+      env:
+        CI: true  # Environment variable to indicate CI environment
 
-      - name: Run tests
-        run: |
-          pytest --maxfail=5 --disable-warnings --cov=. --cov-report=xml
+    - name: Upload coverage to Coveralls
+      run: |
+        coveralls  # Ensure coveralls is installed and configured
+      env:
+        COVERALLS_REPO_TOKEN: ${{ secrets.COVERALLS_REPO_TOKEN }}  # Store the token as a secret
 
-      - name: Upload coverage to Codecov
-        uses: codecov/codecov-action@v3
-        with:
-          files: coverage.xml
-          token: ${{ secrets.CODECOV_TOKEN }}
+    - name: Debug Step - Check installed packages and system info
+      run: |
+        pip freeze
+        python --version
+        uname -a
