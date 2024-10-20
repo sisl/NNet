@@ -53,7 +53,7 @@ class TestConverters(unittest.TestCase):
         input_shape = sess.get_inputs()[0].shape
         if len(input_shape) == 1:
             testInput = testInput.flatten()
-        elif len(input_shape) == 2:
+        elif len(input_shape) == 2 and input_shape[0] == 1:
             testInput = testInput.reshape(1, -1)
 
         # Perform inference using ONNX
@@ -64,8 +64,8 @@ class TestConverters(unittest.TestCase):
             self.fail(f"Failed to run ONNX model inference: {e}")
 
         # Evaluate using NNet models
-        nnetEval = nnet.evaluate_network(testInput[0])
-        nnetEval2 = nnet2.evaluate_network(testInput[0])
+        nnetEval = nnet.evaluate_network(testInput)
+        nnetEval2 = nnet2.evaluate_network(testInput)
 
         # Verify results
         self.assertEqual(onnxEval.shape, nnetEval.shape, "ONNX output shape mismatch")
@@ -118,8 +118,8 @@ class TestConverters(unittest.TestCase):
                 self.fail(f"Failed to run TensorFlow inference: {e}")
 
         # Evaluate using NNet models
-        nnetEval = nnet.evaluate_network(testInput[0])
-        nnetEval2 = nnet2.evaluate_network(testInput[0])
+        nnetEval = nnet.evaluate_network(testInput.flatten())
+        nnetEval2 = nnet2.evaluate_network(testInput.flatten())
 
         # Verify results
         self.assertEqual(pbEval.shape, nnetEval.shape, "PB output shape mismatch")
