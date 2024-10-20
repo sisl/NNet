@@ -2,24 +2,9 @@ import numpy as np
 
 class NNet:
     """
-    Class that represents a fully connected ReLU network from a .nnet file
-
-    Args:
-        filename (str): A .nnet file to load
-
-    Attributes:
-        numLayers (int): Number of weight matrices or bias vectors in neural network
-        layerSizes (list of ints): Size of input layer, hidden layers, and output layer
-        inputSize (int): Size of input
-        outputSize (int): Size of output
-        mins (list of floats): Minimum values of inputs
-        maxes (list of floats): Maximum values of inputs
-        means (list of floats): Means of inputs and mean of outputs
-        ranges (list of floats): Ranges of inputs and range of outputs
-        weights (list of numpy arrays): Weight matrices in network
-        biases (list of numpy arrays): Bias vectors in network
+    Class that represents a fully connected ReLU network from a .nnet file.
     """
-    
+
     def __init__(self, filename):
         # Load network from the .nnet file
         with open(filename) as f:
@@ -44,7 +29,8 @@ class NNet:
             biases = []
             for layernum in range(numLayers):
                 previousLayerSize = layerSizes[layernum]
-                currentLayerSize = layerSizes[layernum+1]
+                currentLayerSize = layerSizes[layernum + 1]
+                
                 # Read weights
                 weight_matrix = np.zeros((currentLayerSize, previousLayerSize))
                 for i in range(currentLayerSize):
@@ -71,14 +57,12 @@ class NNet:
 
     def evaluate_network(self, inputs):
         """
-        Evaluate network using given inputs
-
-        Args:
-            inputs (numpy array of floats): Network inputs to be evaluated
-            
-        Returns:
-            (numpy array of floats): Network output
+        Evaluate network using given inputs.
         """
+        inputs = np.asarray(inputs).flatten()  # Ensure the input is flattened
+        if len(inputs) != self.inputSize:
+            raise ValueError(f"Expected input size {self.inputSize}, but got {len(inputs)}.")
+
         # Normalize inputs
         inputsNorm = np.array([
             (self.mins[i] if inputs[i] < self.mins[i] else self.maxes[i] if inputs[i] > self.maxes[i]
@@ -97,28 +81,23 @@ class NNet:
 
     def evaluate_network_multiple(self, inputs):
         """
-        Evaluate network using multiple sets of inputs
-
-        Args:
-            inputs (numpy array of floats): Array of network inputs to be evaluated.
-            
-        Returns:
-            (numpy array of floats): Network outputs for each set of inputs
+        Evaluate network using multiple sets of inputs.
         """
-        inputs = np.array(inputs).T
-        numInputs = inputs.shape[1]
+        inputs = np.asarray(inputs)
+        if inputs.ndim != 2 or inputs.shape[1] != self.inputSize:
+            raise ValueError(f"Expected input shape (N, {self.inputSize}), but got {inputs.shape}.")
 
         # Normalize inputs
         inputsNorm = np.array([
-            [(self.mins[i] if inputs[i, j] < self.mins[i] else self.maxes[i] if inputs[i, j] > self.maxes[i]
-              else inputs[i, j] - self.means[i]) / self.ranges[i]
-             for j in range(numInputs)]
-            for i in range(self.inputSize)
+            [(self.mins[i] if inputs[j, i] < self.mins[i] else self.maxes[i] if inputs[j, i] > self.maxes[i]
+              else inputs[j, i] - self.means[i]) / self.ranges[i]
+             for i in range(self.inputSize)]
+            for j in range(inputs.shape[0])
         ])
 
         # Forward pass through the network
         for layer in range(self.numLayers - 1):
-            inputsNorm = np.maximum(np.dot(self.weights[layer], inputsNorm) + self.biases[layer].reshape(-1, 1), 0)
+            inputsNorm = np.maximum(np.dot(self.weights[layer], inputsNorm.T) + self.biases[layer].reshape(-1, 1), 0)
         outputs = np.dot(self.weights[-1], inputsNorm) + self.biases[-1].reshape(-1, 1)
 
         # Undo output normalization
@@ -127,12 +106,12 @@ class NNet:
 
     def num_inputs(self):
         """
-        Get network input size
+        Get network input size.
         """
         return self.inputSize
 
     def num_outputs(self):
         """
-        Get network output size
+        Get network output size.
         """
         return self.outputSize
