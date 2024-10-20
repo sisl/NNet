@@ -14,32 +14,34 @@ jobs:
 
     steps:
     - name: Check out the repository
-      uses: actions/checkout@v3  # Updated version for better performance
+      uses: actions/checkout@v3
 
     - name: Set up Python
-      uses: actions/setup-python@v4  # Latest setup-python action
+      uses: actions/setup-python@v4
       with:
-        python-version: '3.10'  # Explicitly setting Python 3.10
+        python-version: '3.10'
 
     - name: Install system dependencies
       run: |
         sudo apt-get update
-        sudo apt-get install -y libhdf5-dev libc-ares-dev libeigen3-dev  # TensorFlow dependencies
+        sudo apt-get install -y libhdf5-dev libc-ares-dev libeigen3-dev
+
     - name: Install Python dependencies
       run: |
         python -m pip install --upgrade pip
-        pip install -r test_requirements.txt  # Adjust if requirements are named differently
+        pip install -r test_requirements.txt  # Ensure this file exists
+
     - name: Run pytest with coverage
       run: |
         pytest --maxfail=5 --disable-warnings --cov=. --cov-report=xml
       env:
-        CI: true  # Environment variable to indicate CI environment
+        CI: true
 
     - name: Upload coverage to Coveralls
       run: |
-        coveralls  # Ensure coveralls is installed and configured
+        coveralls
       env:
-        COVERALLS_REPO_TOKEN: ${{ secrets.COVERALLS_REPO_TOKEN }}  # Store the token as a secret
+        COVERALLS_REPO_TOKEN: ${{ secrets.COVERALLS_REPO_TOKEN }}
 
     - name: Debug Step - Check installed packages and system info
       run: |
