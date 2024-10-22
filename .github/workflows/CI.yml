@@ -1,77 +1,45 @@
-name: CI - Multi-Language
+name: CI - Python Only
 
 on:
   push:
     branches:
-      - main
+      - main  # Run on push to the main branch
   pull_request:
+    branches:
+      - main  # Run on pull requests to the main branch
   workflow_dispatch:
 
 jobs:
-  test:
-    name: Test Matrix - ${{ matrix.os }} - ${{ matrix.language }}
+  python-tests:
     runs-on: ubuntu-latest
-    strategy:
-      fail-fast: false
-      matrix:
-        os: [ubuntu-latest]
-        language: [python, cpp, julia]
-
     steps:
       - name: Check out the repository
-        uses: actions/checkout@v4
+        uses: actions/checkout@v4  # Fetch the code
 
-      # Conditional setup based on language
-      - name: Set up environment
-        if: matrix.language == 'python'
-        uses: actions/setup-python@v4
+      - name: Set up Python
+        uses: actions/setup-python@v4  # Set up the Python environment
         with:
           python-version: '3.10'
 
-      - name: Install Python dependencies
-        if: matrix.language == 'python'
+      - name: Install Dependencies
         run: |
           python -m pip install --upgrade pip
-          pip install -r test_requirements.txt
-
-      - name: Build and Test C++ Code
-        if: matrix.language == 'cpp'
-        run: |
-          sudo apt update
-          sudo apt install -y build-essential cmake
-          cmake . && make && ./your_cpp_tests
-
-      - name: Set up Julia
-        if: matrix.language == 'julia'
-        uses: julia-actions/setup-julia@v2
-        with:
-          version: "1"
-
-      - name: Build Julia Package
-        if: matrix.language == 'julia'
-        uses: julia-actions/julia-buildpkg@v1
-
-      - name: Run Julia Tests
-        if: matrix.language == 'julia'
-        uses: julia-actions/julia-runtest@v1
+          pip install -r test_requirements.txt  # Ensure your requirements are listed here
 
       - name: Run Python Tests with Coverage
-        if: matrix.language == 'python'
         run: |
           pytest --maxfail=5 --disable-warnings --cov=. --cov-report=xml
 
       - name: Upload Coverage to Codecov
-        if: matrix.language == 'python'
-        uses: codecov/codecov-action@v4
+        uses: codecov/codecov-action@v4  # Send coverage reports to Codecov
         with:
-          flags: python
+          flags: python  # Optional: Identify the coverage source
         env:
-          CODECOV_TOKEN: ${{ secrets.CODECOV_TOKEN }}
+          CODECOV_TOKEN: ${{ secrets.CODECOV_TOKEN }}  # Ensure token is added to secrets
 
-      # Debug Step for All Languages
+      # Optional Debug Step
       - name: Debug System Info
         run: |
           uname -a
-          python --version || true
-          gcc --version || true
-          julia --version || true
+          python --version
+          pip freeze  # List installed packages
