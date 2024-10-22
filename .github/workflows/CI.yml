@@ -33,9 +33,9 @@ jobs:
       - name: Upload Coverage to Codecov
         uses: codecov/codecov-action@v4  # Send coverage reports to Codecov
         with:
-          flags: python  # Optional: Identify the coverage source
+          flags: python  
         env:
-          CODECOV_TOKEN: ${{ secrets.CODECOV_TOKEN }}  # Ensure token is added to secrets
+          CODECOV_TOKEN: ${{ secrets.CODECOV_TOKEN }}  
 
       # Optional Debug Step
       - name: Debug System Info
