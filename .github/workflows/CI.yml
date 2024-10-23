@@ -1,4 +1,4 @@
-name: CI - Python Only
+name: CI Build
 
 on:
   push:
