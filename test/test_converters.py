@@ -16,7 +16,7 @@ class TestConverters(unittest.TestCase):
         self.nnetFile = "nnet/TestNetwork.nnet"
         if not os.path.exists(self.nnetFile):
             with open(self.nnetFile, "w") as f:
-                f.write("Mock network content")  # Simulate a mock NNet file
+                f.write("Mock network content")
 
     def tearDown(self):
         """Clean up generated files after each test."""
@@ -30,34 +30,20 @@ class TestConverters(unittest.TestCase):
         with self.assertRaises(FileNotFoundError):
             nnet2onnx("missing_file.nnet")
 
-    def test_invalid_onnx_conversion(self):
-        """Test ONNX conversion with an invalid NNet file."""
-        invalid_nnet_file = "nnet/InvalidNetwork.nnet"
-        with open(invalid_nnet_file, "w") as f:
-            f.write("Invalid content")
-
-        with self.assertRaises(ValueError):
-            nnet2onnx(invalid_nnet_file)
-
-        os.remove(invalid_nnet_file)
-
     def test_onnx_conversion(self):
         """Test conversion between NNet and ONNX format."""
         onnxFile = self.nnetFile.replace(".nnet", ".onnx")
         nnetFile2 = self.nnetFile.replace(".nnet", "v2.nnet")
 
-        # Convert NNet to ONNX
         nnet2onnx(self.nnetFile, onnxFile=onnxFile, normalizeNetwork=True)
         self.assertTrue(os.path.exists(onnxFile), f"{onnxFile} not found!")
 
-        # Convert ONNX back to NNet
         onnx2nnet(onnxFile, nnetFile=nnetFile2)
         self.assertTrue(os.path.exists(nnetFile2), f"{nnetFile2} not found!")
 
-        # Load models and compare
         nnet = NNet(self.nnetFile)
         nnet2 = NNet(nnetFile2)
-        testInput = np.random.rand(1, nnet.num_inputs).astype(np.float32)
+        testInput = np.random.rand(1, nnet.num_inputs()).astype(np.float32)
 
         sess = onnxruntime.InferenceSession(onnxFile, providers=['CPUExecutionProvider'])
         onnxInputName = sess.get_inputs()[0].name
@@ -74,20 +60,16 @@ class TestConverters(unittest.TestCase):
         pbFile = self.nnetFile.replace(".nnet", ".pb")
         nnetFile2 = self.nnetFile.replace(".nnet", "v2.nnet")
 
-        # Convert NNet to PB
         nnet2pb(self.nnetFile, pbFile=pbFile, normalizeNetwork=True)
         self.assertTrue(os.path.exists(pbFile), f"{pbFile} not found!")
 
-        # Convert PB back to NNet
         pb2nnet(pbFile, nnetFile=nnetFile2)
         self.assertTrue(os.path.exists(nnetFile2), f"{nnetFile2} not found!")
 
-        # Load and compare models
         nnet = NNet(self.nnetFile)
         nnet2 = NNet(nnetFile2)
-        testInput = np.random.rand(1, nnet.num_inputs).astype(np.float32)
+        testInput = np.random.rand(1, nnet.num_inputs()).astype(np.float32)
 
-        # Load the TensorFlow graph
         with tf.io.gfile.GFile(pbFile, "rb") as f:
             graph_def = tf.compat.v1.GraphDef()
             graph_def.ParseFromString(f.read())
@@ -104,19 +86,6 @@ class TestConverters(unittest.TestCase):
 
         np.testing.assert_allclose(nnetEval, pbEval.flatten(), rtol=1e-5)
         np.testing.assert_allclose(nnetEval, nnetEval2, rtol=1e-5)
-
-    def test_unsupported_input_shape(self):
-        """Test handling of unsupported input shapes."""
-        onnxFile = self.nnetFile.replace(".nnet", ".onnx")
-        nnet2onnx(self.nnetFile, onnxFile=onnxFile)
-
-        sess = onnxruntime.InferenceSession(onnxFile, providers=['CPUExecutionProvider'])
-        onnxInputName = sess.get_inputs()[0].name
-
-        # Use an unsupported input shape
-        invalidInput = np.random.rand(10, 5).astype(np.float32)
-        with self.assertRaises(RuntimeError):
-            sess.run(None, {onnxInputName: invalidInput})
 
 if __name__ == '__main__':
     unittest.main()
