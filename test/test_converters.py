@@ -98,6 +98,12 @@ class TestConverters(unittest.TestCase):
         nnet = NNet(self.nnetFile)
         nnet2 = NNet(nnetFile2)
 
+        # Debug: Compare weights and biases between nnet and nnet2
+        print("Original NNet Weights:", nnet.weights)
+        print("Converted NNet (from PB) Weights:", nnet2.weights)
+        print("Original NNet Biases:", nnet.biases)
+        print("Converted NNet (from PB) Biases:", nnet2.biases)
+
         # Load TensorFlow graph from PB file
         with tf.io.gfile.GFile(pbFile, "rb") as f:
             graph_def = tf.compat.v1.GraphDef()
