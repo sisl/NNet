@@ -1,147 +1,116 @@
-import unittest
-import os
 import numpy as np
-import onnxruntime
+from tensorflow.python.framework import tensor_util, graph_util
 import tensorflow as tf
-from unittest.mock import patch
-from NNet.converters.nnet2onnx import nnet2onnx
-from NNet.converters.onnx2nnet import onnx2nnet
-from NNet.converters.pb2nnet import pb2nnet
-from NNet.converters.nnet2pb import nnet2pb
-from NNet.python.nnet import NNet
+import os
+from NNet.utils.writeNNet import writeNNet
 
-class TestConverters(unittest.TestCase):
+os.environ["CUDA_VISIBLE_DEVICES"] = "-1"  # Force CPU usage
 
-    def setUp(self):
-        """Set up the environment by ensuring the required NNet file exists."""
-        self.nnetFile = "nnet/TestNetwork.nnet"
-        self.assertTrue(os.path.exists(self.nnetFile), f"{self.nnetFile} not found!")
+def processGraph(op, input_op, foundInputFlag, weights, biases):
+    '''
+    Recursively search the graph to populate weights and biases lists.
 
-    def tearDown(self):
-        """Clean up generated files after each test."""
-        for ext in [".onnx", ".pb", "v2.nnet"]:
-            file = self.nnetFile.replace(".nnet", ext)
-            if os.path.exists(file):
-                os.remove(file)
+    Args:
+        op (tf.Operation): Current TensorFlow operation in search.
+        input_op (tf.Operation): Operation that corresponds to the network input.
+        foundInputFlag (bool): True if input operation is found.
+        weights (list): List to store weight matrices.
+        biases (list): List to store bias vectors.
 
-    def test_onnx(self):
-        """Test conversion between NNet and ONNX format with edge cases and validation checks."""
-        onnxFile = self.nnetFile.replace(".nnet", ".onnx")
-        nnetFile2 = self.nnetFile.replace(".nnet", "v2.nnet")
+    Returns:
+        bool: Updated foundInputFlag.
+    '''
+    if op.type == 'Const':
+        param = tensor_util.MakeNdarray(op.get_attr('value'))
+        if len(param.shape) > 1:
+            weights.append(param.T)  # Transpose to match .nnet format
+        else:
+            biases.append(param)
 
-        # Convert NNet to ONNX
-        nnet2onnx(self.nnetFile, onnxFile=onnxFile, normalizeNetwork=True)
-        self.assertTrue(os.path.exists(onnxFile), f"{onnxFile} not found!")
+    input_ops = [i.op for i in op.inputs]
+    for i in input_ops:
+        if i.name != input_op.name:
+            foundInputFlag = processGraph(i, input_op, foundInputFlag, weights, biases)
+        else:
+            foundInputFlag = True
+    return foundInputFlag
 
-        # Convert ONNX back to NNet
-        onnx2nnet(onnxFile, nnetFile=nnetFile2)
-        self.assertTrue(os.path.exists(nnetFile2), f"{nnetFile2} not found!")
+def pb2nnet(pbFile, inputMins=None, inputMaxes=None, means=None, ranges=None, 
+            nnetFile="", inputName="", outputName="", savedModel=False, savedModelTags=[]):
+    '''
+    Convert a TensorFlow protobuf or SavedModel to a .nnet file.
 
-        # Load NNet models
-        nnet = NNet(self.nnetFile)
-        nnet2 = NNet(nnetFile2)
+    Args:
+        pbFile (str): Path to the frozen graph or SavedModel folder.
+        inputMins (list): Min values for each input.
+        inputMaxes (list): Max values for each input.
+        means (list): Mean values for normalization.
+        ranges (list): Range values for normalization.
+        nnetFile (str): Output .nnet file name. Default: "".
+        inputName (str): Name of input operation. Default: "".
+        outputName (str): Name of output operation. Default: "".
+        savedModel (bool): Set True for SavedModel format. Default: False.
+        savedModelTags (list): Tags to load SavedModel. Default: [].
+    '''
+    if nnetFile == "":
+        nnetFile = pbFile.replace(".pb", ".nnet")
 
-        # Load ONNX model for inference
-        sess = onnxruntime.InferenceSession(onnxFile, providers=['CPUExecutionProvider'])
+    tf.compat.v1.reset_default_graph()
+    sess = tf.compat.v1.Session()
 
-        # Prepare extreme test inputs to cover edge cases
-        testInputs = [
-            np.array([1.0, 1.0, 1.0, 100.0, 1.0], dtype=np.float32),
-            np.array([-1.0, -1.0, -1.0, -100.0, -1.0], dtype=np.float32),
-            np.array([0, 0, 0, 0, 0], dtype=np.float32),
-            np.array([1e10, -1e10, 1e-10, -1e-10, 0], dtype=np.float32)
-        ]
-
-        for testInput in testInputs:
-            # Adjust input shape if required
-            input_shape = sess.get_inputs()[0].shape
-            if len(input_shape) == 1:
-                testInput = testInput.flatten()
-            elif len(input_shape) == 2 and input_shape[0] == 1:
-                testInput = testInput.reshape(1, -1)
-
-            # Perform inference using ONNX
-            onnxInputName = sess.get_inputs()[0].name
-            onnxEval = sess.run(None, {onnxInputName: testInput})[0]
-
-            # Evaluate using NNet models
-            nnetEval = nnet.evaluate_network(testInput)
-            nnetEval2 = nnet2.evaluate_network(testInput)
-
-            # Verify results with increased tolerance
-            self.assertEqual(onnxEval.shape, nnetEval.shape, "ONNX output shape mismatch")
-            np.testing.assert_allclose(nnetEval, onnxEval.flatten(), rtol=1e-3, atol=1e-2)
-            np.testing.assert_allclose(nnetEval, nnetEval2, rtol=1e-3, atol=1e-2)
-
-    def test_pb(self):
-        """Test conversion between NNet and TensorFlow Protocol Buffer (PB) format with enhanced checks."""
-        pbFile = self.nnetFile.replace(".nnet", ".pb")
-        nnetFile2 = self.nnetFile.replace(".nnet", "v2.nnet")
-
-        # Convert NNet to PB
-        nnet2pb(self.nnetFile, pbFile=pbFile, normalizeNetwork=True)
-        self.assertTrue(os.path.exists(pbFile), f"{pbFile} not found!")
-
-        # Convert PB back to NNet
-        pb2nnet(pbFile, nnetFile=nnetFile2)
-        self.assertTrue(os.path.exists(nnetFile2), f"{nnetFile2} not found!")
-
-        # Load NNet models
-        nnet = NNet(self.nnetFile)
-        nnet2 = NNet(nnetFile2)
-
-        # Load TensorFlow graph from PB file
+    if savedModel:
+        tf.compat.v1.saved_model.loader.load(sess, savedModelTags, pbFile)
+        graph_def = graph_util.convert_variables_to_constants(
+            sess, sess.graph.as_graph_def(), [outputName]
+        )
+        with tf.Graph().as_default() as graph:
+            tf.import_graph_def(graph_def, name="")
+    else:
         with tf.io.gfile.GFile(pbFile, "rb") as f:
             graph_def = tf.compat.v1.GraphDef()
             graph_def.ParseFromString(f.read())
-
-        with tf.compat.v1.Session(graph=tf.Graph()) as sess:
+        with tf.Graph().as_default() as graph:
             tf.import_graph_def(graph_def, name="")
 
-            # Retrieve input and output tensors with error handling
-            inputTensor = sess.graph.get_tensor_by_name("x:0")
-            outputTensor = sess.graph.get_tensor_by_name("y_out:0")
+    sess = tf.compat.v1.Session(graph=graph)
 
-            # Extreme test inputs for PB conversion consistency
-            testInputs = [
-                np.array([1.0, 1.0, 1.0, 100.0, 1.0], dtype=np.float32),
-                np.array([-1.0, -1.0, -1.0, -100.0, -1.0], dtype=np.float32),
-                np.array([0, 0, 0, 0, 0], dtype=np.float32),
-                np.array([1e10, -1e10, 1e-10, -1e-10, 0], dtype=np.float32)
-            ]
+    # Identify input and output operations
+    if inputName:
+        inputOp = sess.graph.get_operation_by_name(inputName)
+    else:
+        placeholders = [op for op in sess.graph.get_operations() if op.type == 'Placeholder']
+        assert len(placeholders) == 1, "Multiple placeholders found, specify inputName."
+        inputOp = placeholders[0]
 
-            for testInput in testInputs:
-                testInput = testInput.reshape(1, -1)
-                pbEval = sess.run(outputTensor, feed_dict={inputTensor: testInput})[0]
+    if outputName:
+        outputOp = sess.graph.get_operation_by_name(outputName)
+    else:
+        outputOp = sess.graph.get_operations()[-1]
 
-                # Evaluate using NNet models
-                nnetEval = nnet.evaluate_network(testInput.flatten())
-                nnetEval2 = nnet2.evaluate_network(testInput.flatten())
+    # Recursively find weights and biases
+    weights, biases = [], []
+    foundInputFlag = processGraph(outputOp, inputOp, False, weights, biases)
 
-                # Verify results with increased tolerance
-                self.assertEqual(pbEval.shape, nnetEval.shape, "PB output shape mismatch")
-                np.testing.assert_allclose(nnetEval, pbEval.flatten(), rtol=1e-3, atol=1e-2)
-                np.testing.assert_allclose(nnetEval, nnetEval2, rtol=1e-3, atol=1e-2)
+    inputShape = inputOp.outputs[0].shape.as_list()
+    assert inputShape[0] is None, "Batch size must be None."
+    assert len(inputShape) == 2, "Input must be a 2D tensor."
+    inputSize = inputShape[1]
 
-    @patch("sys.exit", side_effect=Exception("FileNotFoundError"))
-    def test_invalid_file(self, mock_exit):
-        """Test handling of invalid input files."""
-        invalid_nnet_file = "invalid_file.nnet"
-        with self.assertRaises(Exception) as context:
-            nnet2onnx(invalid_nnet_file)
-        self.assertEqual(str(context.exception), "FileNotFoundError")
+    if foundInputFlag:
+        inputMins = inputMins or [np.finfo(np.float32).min] * inputSize
+        inputMaxes = inputMaxes or [np.finfo(np.float32).max] * inputSize
+        means = means or [0.0] * (inputSize + 1)
+        ranges = ranges or [1.0] * (inputSize + 1)
 
-    def test_inconsistent_shapes(self):
-        """Test for shape mismatches and input shape handling."""
-        onnxFile = self.nnetFile.replace(".nnet", ".onnx")
-        nnet2onnx(self.nnetFile, onnxFile=onnxFile, normalizeNetwork=True)
-
-        # Mismatched shape test
-        testInput = np.array([1.0], dtype=np.float32)  # Shape mismatch
-        sess = onnxruntime.InferenceSession(onnxFile, providers=['CPUExecutionProvider'])
-        onnxInputName = sess.get_inputs()[0].name
-        with self.assertRaises(ValueError):
-            sess.run(None, {onnxInputName: testInput})  # Should fail due to shape mismatch
+        print(f"Converted TensorFlow model '{pbFile}' to NNet file '{nnetFile}'.")
+        writeNNet(weights, biases, inputMins, inputMaxes, means, ranges, nnetFile)
+    else:
+        print(f"Error: Input operation '{inputOp.name}' not found in the graph.")
 
 if __name__ == '__main__':
-    unittest.main()
+    if len(sys.argv) > 1:
+        print("WARNING: Using default input bounds and normalization constants.")
+        pbFile = sys.argv[1]
+        pb2nnet(pbFile)
+    else:
+        print("Usage: python pb2nnet.py <pbFile> [<nnetFile>]")
