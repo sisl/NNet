@@ -42,10 +42,7 @@ class TestConverters(unittest.TestCase):
         nnet2 = NNet(nnetFile2)
 
         # Load ONNX model for inference
-        try:
-            sess = onnxruntime.InferenceSession(onnxFile, providers=['CPUExecutionProvider'])
-        except Exception as e:
-            self.fail(f"Failed to create ONNX inference session: {e}")
+        sess = onnxruntime.InferenceSession(onnxFile, providers=['CPUExecutionProvider'])
 
         # Prepare the test input
         testInput = np.array([1.0, 1.0, 1.0, 100.0, 1.0], dtype=np.float32)
@@ -57,16 +54,13 @@ class TestConverters(unittest.TestCase):
 
         # Perform inference using ONNX
         onnxInputName = sess.get_inputs()[0].name
-        try:
-            onnxEval = sess.run(None, {onnxInputName: testInput})[0]
-        except Exception as e:
-            self.fail(f"Failed to run ONNX model inference: {e}")
+        onnxEval = sess.run(None, {onnxInputName: testInput})[0]
 
         # Evaluate using NNet models
         nnetEval = nnet.evaluate_network(testInput)
         nnetEval2 = nnet2.evaluate_network(testInput)
 
-        # Verify results
+        # Verify results with increased tolerance for potential numerical differences
         self.assertEqual(onnxEval.shape, nnetEval.shape, "ONNX output shape mismatch")
         np.testing.assert_allclose(nnetEval, onnxEval.flatten(), rtol=1e-3, atol=1e-2)
         np.testing.assert_allclose(nnetEval, nnetEval2, rtol=1e-3, atol=1e-2)
@@ -107,15 +101,13 @@ class TestConverters(unittest.TestCase):
             outputTensor = sess.graph.get_tensor_by_name("y_out:0")
 
             testInput = np.array([1.0, 1.0, 1.0, 100.0, 1.0], dtype=np.float32).reshape(1, -1)
-
-            # Perform inference using TensorFlow
             pbEval = sess.run(outputTensor, feed_dict={inputTensor: testInput})[0]
 
         # Evaluate using NNet models
         nnetEval = nnet.evaluate_network(testInput.flatten())
         nnetEval2 = nnet2.evaluate_network(testInput.flatten())
 
-        # Verify results
+        # Verify results with increased tolerance
         self.assertEqual(pbEval.shape, nnetEval.shape, "PB output shape mismatch")
         np.testing.assert_allclose(nnetEval, pbEval.flatten(), rtol=1e-3, atol=1e-2)
         np.testing.assert_allclose(nnetEval, nnetEval2, rtol=1e-3, atol=1e-2)
@@ -140,6 +132,7 @@ class TestConverters(unittest.TestCase):
         main()
         self.assertTrue(os.path.exists("output.pb"), "output.pb file not found!")
         os.remove("output.pb")  # Cleanup
+
 
 if __name__ == '__main__':
     unittest.main()
