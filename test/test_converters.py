@@ -34,11 +34,19 @@ class TestConverters(unittest.TestCase):
         nnet = NNet(self.nnetFile)
         nnet2 = NNet(nnetFile2)
         sess = onnxruntime.InferenceSession(onnxFile, providers=['CPUExecutionProvider'])
-        testInput = np.array([1.0, 1.0, 1.0, 100.0, 1.0], dtype=np.float32).reshape(1, -1)
+        
+        # Prepare the test input based on ONNX input shape
+        input_shape = sess.get_inputs()[0].shape
+        if len(input_shape) == 1:
+            testInput = np.array([1.0, 1.0, 1.0, 100.0, 1.0], dtype=np.float32)
+        elif len(input_shape) == 2:
+            testInput = np.array([1.0, 1.0, 1.0, 100.0, 1.0], dtype=np.float32).reshape(1, -1)
+        
         onnxEval = sess.run(None, {sess.get_inputs()[0].name: testInput})[0]
 
         nnetEval = nnet.evaluate_network(testInput.flatten())
         nnetEval2 = nnet2.evaluate_network(testInput.flatten())
+        
         self.assertEqual(onnxEval.shape, nnetEval.shape, "ONNX output shape mismatch")
         np.testing.assert_allclose(nnetEval, onnxEval.flatten(), rtol=1e-3, atol=1e-2)
         np.testing.assert_allclose(nnetEval, nnetEval2, rtol=1e-3, atol=1e-2)
@@ -84,7 +92,6 @@ class TestConverters(unittest.TestCase):
             np.testing.assert_allclose(nnetEval, pbEval.flatten(), rtol=1e-2, atol=1e-1)
             np.testing.assert_allclose(nnetEval, nnetEval2, rtol=1e-2, atol=1e-1)
         else:
-            # Without normalization, we do not expect a direct match
             self.assertNotAlmostEqual(np.max(np.abs(nnetEval - pbEval.flatten())), 0, delta=10,
                                       msg="Unexpectedly close values without normalization.")
 
