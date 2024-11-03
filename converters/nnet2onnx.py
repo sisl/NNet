@@ -25,6 +25,9 @@ def nnet2onnx(
         normalizeNetwork (bool): If True, adapt the network weights and biases so that networks and inputs 
                                  do not need normalization. Defaults to False.
     """
+    # Initialize weights and biases as empty lists to handle cases where they might not be assigned
+    weights, biases = [], []
+    
     try:
         if normalizeNetwork:
             weights, biases = normalizeNNet(nnetFile)
@@ -32,7 +35,11 @@ def nnet2onnx(
             weights, biases = readNNet(nnetFile)
     except FileNotFoundError:
         print(f"Error: The file {nnetFile} was not found.")
-        sys.exit(1)
+        raise  # Re-raise the exception to allow the test to catch it
+
+    if not weights or not biases:  # Check if weights and biases are populated
+        print(f"Error: The file {nnetFile} could not be parsed correctly.")
+        raise ValueError("Parsing error: weights and biases could not be determined.")
 
     inputSize = weights[0].shape[1]
     outputSize = weights[-1].shape[0]
@@ -50,33 +57,27 @@ def nnet2onnx(
 
     # Build the ONNX model layer by layer
     for i in range(numLayers):
-        # Use the output variable name for the last layer
         outputName = f"H{i}"
         if i == numLayers - 1:
             outputName = outputVar
 
-        # Weight matrix multiplication
-        operations.append(helper.make_node("MatMul", [f"W{i}", inputVar], [f"M{i}"]))
+        operations.append(helper.make_node("MatMul", [inputVar, f"W{i}"], [f"M{i}"]))
         initializers.append(numpy_helper.from_array(weights[i].astype(np.float32), name=f"W{i}"))
 
-        # Bias addition
         operations.append(helper.make_node("Add", [f"M{i}", f"B{i}"], [outputName]))
         initializers.append(numpy_helper.from_array(biases[i].astype(np.float32), name=f"B{i}"))
 
-        # Apply ReLU activation to all layers except the last
         if i < numLayers - 1:
-            operations.append(helper.make_node("Relu", [f"H{i}"], [f"R{i}"]))
+            operations.append(helper.make_node("Relu", [outputName], [f"R{i}"]))
             inputVar = f"R{i}"
 
     # Create the graph and model in ONNX format
     graph_proto = helper.make_graph(operations, "nnet2onnx_Model", inputs, outputs, initializers)
     model_def = helper.make_model(graph_proto)
 
-    # Print success message
-    print(f"Converted NNet model at {nnetFile} to an ONNX model at {onnxFile}")
-
     # Save the ONNX model to file
     onnx.save(model_def, onnxFile)
+    print(f"Converted NNet model at {nnetFile} to an ONNX model at {onnxFile}")
 
 def main():
     # Parse command-line arguments
