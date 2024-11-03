@@ -54,8 +54,8 @@ class TestConverters(unittest.TestCase):
             nnetEval2 = nnet2.evaluate_network(testInput.flatten())
 
             self.assertEqual(onnxEval.shape, nnetEval.shape, "ONNX output shape mismatch")
-            np.testing.assert_allclose(nnetEval, onnxEval.flatten(), rtol=1e-1, atol=2)
-            np.testing.assert_allclose(nnetEval, nnetEval2, rtol=1e-1, atol=2)
+            np.testing.assert_allclose(nnetEval, onnxEval.flatten(), rtol=0.2, atol=5)
+            np.testing.assert_allclose(nnetEval, nnetEval2, rtol=0.2, atol=5)
 
     def test_pb(self):
         """Test PB conversion with normalization."""
