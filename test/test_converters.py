@@ -2,6 +2,7 @@ import unittest
 import os
 import numpy as np
 import onnxruntime
+from unittest.mock import patch
 from NNet.converters.nnet2onnx import nnet2onnx
 from NNet.converters.onnx2nnet import onnx2nnet
 from NNet.converters.pb2nnet import pb2nnet
@@ -18,7 +19,7 @@ class TestConverters(unittest.TestCase):
 
     def tearDown(self):
         """Clean up generated files after each test."""
-        for ext in [".onnx", ".pb", "v2.nnet"]:
+        for ext in [".onnx", ".pb", "v2.nnet", "_custom_output.pb"]:
             file = self.nnetFile.replace(".nnet", ext)
             if os.path.exists(file):
                 os.remove(file)
@@ -73,12 +74,20 @@ class TestConverters(unittest.TestCase):
         np.testing.assert_allclose(nnetEval, nnetEval2, rtol=1e-5)
 
     def test_pb(self):
-        """Test conversion between NNet and TensorFlow Protocol Buffer (PB) format."""
+        """Test conversion between NNet and TensorFlow Protocol Buffer (PB) format with normalization."""
+        self._test_pb_conversion(normalizeNetwork=True)
+
+    def test_pb_without_normalization(self):
+        """Test conversion between NNet and TensorFlow Protocol Buffer (PB) format without normalization."""
+        self._test_pb_conversion(normalizeNetwork=False)
+
+    def _test_pb_conversion(self, normalizeNetwork):
+        """Helper function to test PB conversion with and without normalization."""
         pbFile = self.nnetFile.replace(".nnet", ".pb")
         nnetFile2 = self.nnetFile.replace(".nnet", "v2.nnet")
 
         # Convert NNet to PB
-        nnet2pb(self.nnetFile, pbFile=pbFile, normalizeNetwork=True)
+        nnet2pb(self.nnetFile, pbFile=pbFile, normalizeNetwork=normalizeNetwork)
         self.assertTrue(os.path.exists(pbFile), f"{pbFile} not found!")
 
         # Convert PB back to NNet
@@ -96,10 +105,6 @@ class TestConverters(unittest.TestCase):
 
         with tf.compat.v1.Session(graph=tf.Graph()) as sess:
             tf.import_graph_def(graph_def, name="")
-
-            # List operations for debugging
-            for op in sess.graph.get_operations():
-                print(op.name)  # Debug: List all operation names
 
             # Retrieve input and output tensors
             try:
@@ -126,9 +131,28 @@ class TestConverters(unittest.TestCase):
         np.testing.assert_allclose(nnetEval, pbEval.flatten(), rtol=1e-5)
         np.testing.assert_allclose(nnetEval, nnetEval2, rtol=1e-5)
 
+    def test_pb_with_custom_output_node(self):
+        """Test PB conversion with a custom output node name."""
+        pbFile = self.nnetFile.replace(".nnet", "_custom_output.pb")
+        nnet2pb(self.nnetFile, pbFile=pbFile, output_node_names="custom_output")
+        self.assertTrue(os.path.exists(pbFile), f"{pbFile} not found!")
+        # Additional verification steps as in test_pb, with "custom_output:0" as output node
+
+    @patch("tensorflow.io.write_graph", side_effect=IOError("Failed to write graph"))
+    def test_pb_write_failure(self, mock_write_graph):
+        """Test handling of write failures during PB conversion."""
+        pbFile = self.nnetFile.replace(".nnet", ".pb")
+        with self.assertRaises(IOError):
+            nnet2pb(self.nnetFile, pbFile=pbFile)
+
+    @patch("sys.argv", ["nnet2pb.py", "nnet/TestNetwork.nnet", "output.pb", "custom_output"])
+    def test_main_with_arguments(self):
+        """Test the main function of nnet2pb.py with command-line arguments."""
+        from NNet.converters.nnet2pb import main
+        main()
+        self.assertTrue(os.path.exists("output.pb"), "output.pb file not found!")
+        os.remove("output.pb")  # Cleanup
+
 
 if __name__ == '__main__':
     unittest.main()
-
-
-
