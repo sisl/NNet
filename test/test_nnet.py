@@ -42,11 +42,8 @@ class TestNNet(unittest.TestCase):
         """Test evaluating multiple inputs in a batch."""
         nnet = NNet(self.nnetFile)
         
-        # Reshape batch input for compatibility with evaluate_network_multiple
-        batchInput = np.array([
-            [1.0, 1.0, 1.0, 100.0, 1.0],
-            [0.0, 0.0, 0.0, 0.0, 0.0]
-        ], dtype=np.float32).reshape(-1, 5)
+        # Create a batch input with the correct dimensions for the network
+        batchInput = np.random.rand(2, nnet.num_inputs()).astype(np.float32)
 
         # Ensure the input batch has the correct dimensions for batch processing
         self.assertEqual(batchInput.shape[1], nnet.num_inputs())
