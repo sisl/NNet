@@ -64,27 +64,24 @@ class TestNNet(unittest.TestCase):
             NNet(emptyFile)
 
         os.remove(emptyFile)
+
+    def test_evaluate_multiple_inputs(self):
+        """Test evaluating multiple inputs in a batch."""
+        nnet = NNet(self.nnetFile)
         
-def test_evaluate_multiple_inputs(self):
-    """Test evaluating multiple inputs in a batch."""
-    nnet = NNet(self.nnetFile)
-    
-    # Create a batch input with the correct dimensions for the network
-    batchInput = np.array([
-        [1.0, 1.0, 1.0, 100.0, 1.0],
-        [0.0, 0.0, 0.0, 0.0, 0.0]
-    ], dtype=np.float32)
-    
-    # Ensure the input batch has the correct dimensions for batch processing
-    self.assertEqual(batchInput.shape[1], nnet.num_inputs())
-    
-    # Transpose batchInput to match the expected (50, N) format for matrix multiplication
-    batchInput = batchInput.T
-    
-    # Run batch evaluation and verify the output shape
-    nnetEvalBatch = nnet.evaluate_network_multiple(batchInput.T)
-    self.assertEqual(nnetEvalBatch.shape, (2, nnet.num_outputs()))
-    print(f"Evaluating batch input: {batchInput.T}, batch output: {nnetEvalBatch}")
+        # Create a batch input with the correct dimensions for the network
+        batchInput = np.array([
+            [1.0, 1.0, 1.0, 100.0, 1.0],
+            [0.0, 0.0, 0.0, 0.0, 0.0]
+        ], dtype=np.float32)
+        
+        # Ensure the input batch has the correct dimensions for batch processing
+        self.assertEqual(batchInput.shape[1], nnet.num_inputs())
+        
+        # Run batch evaluation and verify the output shape
+        nnetEvalBatch = nnet.evaluate_network_multiple(batchInput)
+        self.assertEqual(nnetEvalBatch.shape, (2, nnet.num_outputs()))
+        print(f"Evaluating batch input: {batchInput}, batch output: {nnetEvalBatch}")
 
 if __name__ == '__main__':
     unittest.main()
