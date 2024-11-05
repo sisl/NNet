@@ -7,7 +7,7 @@ class TestNNet(unittest.TestCase):
 
     def setUp(self):
         """Set up test environment."""
-        self.nnetFile = "nnet/TestNetwork.nnet"
+        self.nnetFile = "/mnt/data/TestNetwork.nnet"  # Adjust path to your uploaded file
         self.assertTrue(os.path.exists(self.nnetFile), f"Test file {self.nnetFile} not found!")
 
     def test_evaluate_valid(self):
@@ -70,10 +70,7 @@ class TestNNet(unittest.TestCase):
         nnet = NNet(self.nnetFile)
         
         # Create a batch input with the correct dimensions for the network
-        batchInput = np.array([
-            [1.0, 1.0, 1.0, 100.0, 1.0],
-            [0.0, 0.0, 0.0, 0.0, 0.0]
-        ], dtype=np.float32)
+        batchInput = np.random.rand(2, nnet.num_inputs()).astype(np.float32)
         
         # Ensure the input batch has the correct dimensions for batch processing
         self.assertEqual(batchInput.shape[1], nnet.num_inputs())
