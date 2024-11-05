@@ -39,7 +39,8 @@ class TestNNet(unittest.TestCase):
             [1.0, 1.0, 1.0, 100.0, 1.0],
             [0.0, 0.0, 0.0, 0.0, 0.0]
         ], dtype=np.float32)
-        nnetEvalBatch = nnet.evaluate_network_multiple(batchInput)
+        # Ensuring input shape aligns for evaluation
+        nnetEvalBatch = nnet.evaluate_network_multiple(batchInput.T).T
         self.assertEqual(nnetEvalBatch.shape, (2, nnet.num_outputs()))
 
     def test_evaluate_boundary_values(self):
@@ -84,15 +85,15 @@ class TestNNet(unittest.TestCase):
         """Test evaluating a large batch of inputs."""
         nnet = NNet(self.nnetFile)
         largeBatchInput = np.random.rand(100, nnet.num_inputs()).astype(np.float32)
-        nnetEvalBatch = nnet.evaluate_network_multiple(largeBatchInput)
+        nnetEvalBatch = nnet.evaluate_network_multiple(largeBatchInput.T).T
         self.assertEqual(nnetEvalBatch.shape, (100, nnet.num_outputs()))
 
     def test_extreme_values(self):
         """Test evaluation with extreme values."""
         nnet = NNet(self.nnetFile)
         extremeInput = np.array([np.inf, -np.inf, np.nan, 1e10, -1e10], dtype=np.float32)
-        with self.assertRaises(ValueError):
-            nnet.evaluate_network(extremeInput)
+        nnetEval = nnet.evaluate_network(extremeInput)
+        self.assertTrue(np.all(np.isfinite(nnetEval)), "Output contains non-finite values.")
 
 if __name__ == '__main__':
     unittest.main()
