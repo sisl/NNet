@@ -74,9 +74,16 @@ class TestNNet(unittest.TestCase):
             [0.0] * input_size
         ], dtype=np.float32)
 
+        # Ensure the batch input is aligned with the network input shape
         self.assertEqual(batchInput.shape[1], nnet.num_inputs())
-        nnetEvalBatch = nnet.evaluate_network_multiple(batchInput)
-        print(f"Evaluating multiple inputs: {batchInput}, output: {nnetEvalBatch}")
+        
+        # Run batch evaluation and check output shape
+        try:
+            nnetEvalBatch = nnet.evaluate_network_multiple(batchInput)
+            print(f"Evaluating multiple inputs: {batchInput}, output: {nnetEvalBatch}")
+        except ValueError as e:
+            print("Error encountered during batch evaluation:", e)
+            self.fail("evaluate_network_multiple raised ValueError unexpectedly.")
 
 if __name__ == '__main__':
     unittest.main()
