@@ -49,6 +49,9 @@ class TestNNet(unittest.TestCase):
         # Ensure the input batch has the correct dimensions for batch processing
         self.assertEqual(batchInput.shape[1], nnet.num_inputs())
 
+        # Transpose the batch input to match the expected shape (N, inputSize)
+        batchInput = batchInput.reshape(-1, nnet.num_inputs())
+        
         # Run batch evaluation and verify the output shape
         nnetEvalBatch = nnet.evaluate_network_multiple(batchInput)
         self.assertEqual(nnetEvalBatch.shape, (batchInput.shape[0], nnet.num_outputs()))
