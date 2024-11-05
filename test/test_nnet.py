@@ -7,7 +7,7 @@ class TestNNet(unittest.TestCase):
 
     def setUp(self):
         """Set up test environment."""
-        self.nnetFile = "nnet/TestNetwork.nnet"  # Relative path to the .nnet file
+        self.nnetFile = "nnet/TestNetwork.nnet"  # Ensure this path points to the correct .nnet file
         self.assertTrue(os.path.exists(self.nnetFile), f"Test file {self.nnetFile} not found!")
 
     def test_evaluate_valid(self):
@@ -68,17 +68,18 @@ class TestNNet(unittest.TestCase):
         """Test evaluating multiple inputs in a batch."""
         nnet = NNet(self.nnetFile)
 
+        # Create batch input to match the input size of the network
         input_size = nnet.num_inputs()
         batchInput = np.array([
-            [1.0] * input_size,
-            [0.0] * input_size
+            [1.0] * input_size,  # First input
+            [0.0] * input_size   # Second input
         ], dtype=np.float32)
 
-        # Ensure the batch input is aligned with the network input shape
+        # Ensure that the input batch shape is valid
         self.assertEqual(batchInput.shape[1], nnet.num_inputs())
         
-        # Run batch evaluation and check output shape
         try:
+            # Run batch evaluation and verify output
             nnetEvalBatch = nnet.evaluate_network_multiple(batchInput)
             print(f"Evaluating multiple inputs: {batchInput}, output: {nnetEvalBatch}")
         except ValueError as e:
