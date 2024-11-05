@@ -8,7 +8,8 @@ class TestNNet(unittest.TestCase):
     def setUp(self):
         """Set up test environment."""
         self.nnetFile = "nnet/TestNetwork.nnet"
-        self.assertTrue(os.path.exists(self.nnetFile), f"Test file {self.nnetFile} not found!")
+        if not os.path.exists(self.nnetFile):
+            self.fail(f"Test file {self.nnetFile} not found!")
 
     def test_evaluate_valid(self):
         """Test evaluation with valid input."""
@@ -17,6 +18,7 @@ class TestNNet(unittest.TestCase):
         nnetEval = nnet.evaluate_network(testInput)
         print(f"Evaluating valid input: {testInput}, output: {nnetEval}")
 
+        # Expected output should match the specific values returned by this model.
         expectedOutput = np.array([270.94961805, 280.8974763, 274.55254776, 288.10071007, 256.18037737])
         np.testing.assert_allclose(nnetEval, expectedOutput, rtol=1e-5)
 
@@ -57,13 +59,14 @@ class TestNNet(unittest.TestCase):
     def test_empty_file(self):
         """Test loading an empty NNet file."""
         emptyFile = "nnet/EmptyNetwork.nnet"
-        with open(emptyFile, "w") as f:
-            pass  # Create an empty file
+        try:
+            with open(emptyFile, "w") as f:
+                pass  # Create an empty file
 
-        with self.assertRaises(ValueError):
-            NNet(emptyFile)
-
-        os.remove(emptyFile)
+            with self.assertRaises(ValueError):
+                NNet(emptyFile)
+        finally:
+            os.remove(emptyFile)
 
 if __name__ == '__main__':
     unittest.main()
