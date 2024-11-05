@@ -29,7 +29,7 @@ class TestNNet(unittest.TestCase):
         """Test evaluation with out-of-range inputs."""
         nnet = NNet(self.nnetFile)
         outOfRangeInput = np.array([-1000.0, 1000.0, -1000.0, 1000.0, -1000.0], dtype=np.float32)
-        nnetEval = nnet.evaluate_network(outOfRangeInput)
+        nnet.evaluate_network(outOfRangeInput)
 
     def test_evaluate_multiple_invalid(self):
         """Test multiple input evaluation with invalid shape."""
@@ -41,17 +41,16 @@ class TestNNet(unittest.TestCase):
     def test_evaluate_multiple_inputs(self):
         """Test evaluating multiple inputs in a batch."""
         nnet = NNet(self.nnetFile)
+        
+        # Reshape batch input for compatibility with evaluate_network_multiple
         batchInput = np.array([
             [1.0, 1.0, 1.0, 100.0, 1.0],
             [0.0, 0.0, 0.0, 0.0, 0.0]
-        ], dtype=np.float32)
+        ], dtype=np.float32).reshape(-1, 5)
 
         # Ensure the input batch has the correct dimensions for batch processing
         self.assertEqual(batchInput.shape[1], nnet.num_inputs())
 
-        # Transpose the batch input to match the expected shape (N, inputSize)
-        batchInput = batchInput.reshape(-1, nnet.num_inputs())
-        
         # Run batch evaluation and verify the output shape
         nnetEvalBatch = nnet.evaluate_network_multiple(batchInput)
         self.assertEqual(nnetEvalBatch.shape, (batchInput.shape[0], nnet.num_outputs()))
