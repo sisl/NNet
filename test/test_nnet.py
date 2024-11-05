@@ -7,7 +7,7 @@ class TestNNet(unittest.TestCase):
 
     def setUp(self):
         """Set up test environment."""
-        self.nnetFile = "/mnt/data/TestNetwork.nnet"  # Path to your uploaded .nnet file
+        self.nnetFile = "nnet/TestNetwork.nnet"  # Relative path to the .nnet file
         self.assertTrue(os.path.exists(self.nnetFile), f"Test file {self.nnetFile} not found!")
 
     def test_evaluate_valid(self):
@@ -17,7 +17,6 @@ class TestNNet(unittest.TestCase):
         nnetEval = nnet.evaluate_network(testInput)
         print(f"Evaluating valid input: {testInput}, output: {nnetEval}")
 
-        # Replace with expected output if known, or use tolerance-based checking
         expectedOutput = np.array([270.94961805, 280.8974763, 274.55254776, 288.10071007, 256.18037737])
         np.testing.assert_allclose(nnetEval, expectedOutput, rtol=1e-5)
 
@@ -47,12 +46,12 @@ class TestNNet(unittest.TestCase):
     def test_num_inputs(self):
         """Test the number of inputs."""
         nnet = NNet(self.nnetFile)
-        self.assertEqual(nnet.num_inputs(), 5)  # Replace '5' with the actual input size if known
+        self.assertEqual(nnet.num_inputs(), 5)
 
     def test_num_outputs(self):
         """Test the number of outputs."""
         nnet = NNet(self.nnetFile)
-        self.assertEqual(nnet.num_outputs(), 5)  # Replace '5' with the actual output size if known
+        self.assertEqual(nnet.num_outputs(), 5)
 
     def test_empty_file(self):
         """Test loading an empty NNet file."""
@@ -69,17 +68,13 @@ class TestNNet(unittest.TestCase):
         """Test evaluating multiple inputs in a batch."""
         nnet = NNet(self.nnetFile)
 
-        # Dynamically create a batch input based on the number of inputs expected by the network
         input_size = nnet.num_inputs()
         batchInput = np.array([
             [1.0] * input_size,
             [0.0] * input_size
         ], dtype=np.float32)
 
-        # Ensure the input batch has the correct dimensions for batch processing
         self.assertEqual(batchInput.shape[1], nnet.num_inputs())
-
-        # Run batch evaluation and verify the output
         nnetEvalBatch = nnet.evaluate_network_multiple(batchInput)
         print(f"Evaluating multiple inputs: {batchInput}, output: {nnetEvalBatch}")
 
