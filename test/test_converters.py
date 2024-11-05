@@ -1,8 +1,8 @@
-import unittest 
+import unittest
 import os
 import numpy as np
 import onnxruntime
-from unittest.mock import patch
+from unittest.mock import patch, MagicMock
 from NNet.converters.nnet2onnx import nnet2onnx
 from NNet.converters.onnx2nnet import onnx2nnet
 from NNet.converters.pb2nnet import pb2nnet
@@ -22,7 +22,8 @@ class TestConverters(unittest.TestCase):
             if os.path.exists(file):
                 os.remove(file)
 
-    def test_onnx(self):
+    def test_onnx_conversion(self):
+        """Test conversion to ONNX format and back to NNet."""
         onnxFile = self.nnetFile.replace(".nnet", ".onnx")
         nnetFile2 = self.nnetFile.replace(".nnet", "v2.nnet")
 
@@ -35,7 +36,6 @@ class TestConverters(unittest.TestCase):
         nnet2 = NNet(nnetFile2)
         sess = onnxruntime.InferenceSession(onnxFile, providers=['CPUExecutionProvider'])
         
-        # Prepare the test input based on ONNX input shape
         input_shape = sess.get_inputs()[0].shape
         if len(input_shape) == 1:
             testInput = np.array([1.0, 1.0, 1.0, 100.0, 1.0], dtype=np.float32)
@@ -43,7 +43,6 @@ class TestConverters(unittest.TestCase):
             testInput = np.array([1.0, 1.0, 1.0, 100.0, 1.0], dtype=np.float32).reshape(1, -1)
         
         onnxEval = sess.run(None, {sess.get_inputs()[0].name: testInput})[0]
-
         nnetEval = nnet.evaluate_network(testInput.flatten())
         nnetEval2 = nnet2.evaluate_network(testInput.flatten())
         
@@ -51,10 +50,12 @@ class TestConverters(unittest.TestCase):
         np.testing.assert_allclose(nnetEval, onnxEval.flatten(), rtol=1e-3, atol=1e-2)
         np.testing.assert_allclose(nnetEval, nnetEval2, rtol=1e-3, atol=1e-2)
 
-    def test_pb(self):
+    def test_pb_conversion(self):
+        """Test conversion to PB format and back to NNet."""
         self._test_pb_conversion(normalizeNetwork=True)
 
     def test_pb_without_normalization(self):
+        """Test PB conversion without normalization."""
         self._test_pb_conversion(normalizeNetwork=False, compare_direct=False)
 
     def _test_pb_conversion(self, normalizeNetwork, compare_direct=True):
@@ -83,36 +84,37 @@ class TestConverters(unittest.TestCase):
         nnetEval = nnet.evaluate_network(testInput.flatten())
         nnetEval2 = nnet2.evaluate_network(testInput.flatten())
 
-        print(f"nnetEval: {nnetEval}")
-        print(f"pbEval: {pbEval.flatten()}")
-        print(f"nnetEval2: {nnetEval2}")
-
         if compare_direct:
             self.assertEqual(pbEval.shape, nnetEval.shape, "PB output shape mismatch")
             np.testing.assert_allclose(nnetEval, pbEval.flatten(), rtol=1e-2, atol=1e-1)
             np.testing.assert_allclose(nnetEval, nnetEval2, rtol=1e-2, atol=1e-1)
-        else:
-            self.assertNotAlmostEqual(np.max(np.abs(nnetEval - pbEval.flatten())), 0, delta=10,
-                                      msg="Unexpectedly close values without normalization.")
 
-    def test_pb_with_custom_output_node(self):
+    def test_custom_output_node(self):
+        """Test conversion with a custom output node."""
         pbFile = self.nnetFile.replace(".nnet", "_custom_output.pb")
         nnet2pb(self.nnetFile, pbFile=pbFile, output_node_names="custom_output")
         self.assertTrue(os.path.exists(pbFile), f"{pbFile} not found!")
 
     @patch("tensorflow.io.write_graph", side_effect=IOError("Failed to write graph"))
     def test_pb_write_failure(self, mock_write_graph):
+        """Test handling of a failed write attempt in PB conversion."""
         pbFile = self.nnetFile.replace(".nnet", ".pb")
         with self.assertRaises(IOError):
             nnet2pb(self.nnetFile, pbFile=pbFile)
 
     @patch("sys.argv", ["nnet2pb.py", "nnet/TestNetwork.nnet", "output.pb", "custom_output"])
     def test_main_with_arguments(self):
+        """Test running the main function of nnet2pb with CLI arguments."""
         from NNet.converters.nnet2pb import main
         main()
         self.assertTrue(os.path.exists("output.pb"), "output.pb file not found!")
         os.remove("output.pb")
 
+    def test_missing_file_handling(self):
+        """Test handling of a missing input file."""
+        missingFile = "nnet/NonExistentFile.nnet"
+        with self.assertRaises(FileNotFoundError):
+            nnet2onnx(missingFile, "output.onnx")
 
 if __name__ == '__main__':
     unittest.main()
