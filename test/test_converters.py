@@ -39,7 +39,9 @@ class TestConverters(unittest.TestCase):
         
         # Prepare the test input based on ONNX input shape
         input_shape = sess.get_inputs()[0].shape
-        testInput = np.array([1.0, 1.0, 1.0, 100.0, 1.0], dtype=np.float32).reshape(1, -1)
+        testInput = np.array([1.0, 1.0, 1.0, 100.0, 1.0], dtype=np.float32)
+        if len(input_shape) == 2:
+            testInput = testInput.reshape(1, -1)  # Reshape if ONNX expects 2D input
         
         onnxEval = sess.run(None, {sess.get_inputs()[0].name: testInput})[0]
 
