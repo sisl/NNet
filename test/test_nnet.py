@@ -15,8 +15,6 @@ class TestNNet(unittest.TestCase):
         testInput = np.array([1.0, 1.0, 1.0, 100.0, 1.0], dtype=np.float32)
         nnet = NNet(self.nnetFile)
         nnetEval = nnet.evaluate_network(testInput)
-        print(f"Evaluating valid input: {testInput}, output: {nnetEval}")
-
         expectedOutput = np.array([270.94961805, 280.8974763, 274.55254776, 288.10071007, 256.18037737])
         np.testing.assert_allclose(nnetEval, expectedOutput, rtol=1e-5)
 
@@ -24,7 +22,6 @@ class TestNNet(unittest.TestCase):
         """Test evaluation with incorrect input length."""
         nnet = NNet(self.nnetFile)
         invalidInput = np.array([1.0, 1.0, 1.0], dtype=np.float32)
-
         with self.assertRaises(ValueError):
             nnet.evaluate_network(invalidInput)
 
@@ -32,15 +29,12 @@ class TestNNet(unittest.TestCase):
         """Test evaluation with out-of-range inputs."""
         nnet = NNet(self.nnetFile)
         outOfRangeInput = np.array([-1000.0, 1000.0, -1000.0, 1000.0, -1000.0], dtype=np.float32)
-
         nnetEval = nnet.evaluate_network(outOfRangeInput)
-        print(f"Evaluating out-of-range input: {outOfRangeInput}, output: {nnetEval}")
 
     def test_evaluate_multiple_invalid(self):
         """Test multiple input evaluation with invalid shape."""
         nnet = NNet(self.nnetFile)
         invalidBatchInput = np.array([1.0, 1.0, 1.0, 100.0], dtype=np.float32).reshape(2, 2)
-
         with self.assertRaises(ValueError):
             nnet.evaluate_network_multiple(invalidBatchInput)
 
@@ -55,11 +49,8 @@ class TestNNet(unittest.TestCase):
         # Ensure the input batch has the correct dimensions for batch processing
         self.assertEqual(batchInput.shape[1], nnet.num_inputs())
 
-        # Transpose the batch input to match the expected shape for batch processing
-        nnetEvalBatch = nnet.evaluate_network_multiple(batchInput.T).T
-        print(f"Evaluating multiple inputs: {batchInput}, output: {nnetEvalBatch}")
-
-        # Validate the output dimensions are as expected for batch processing
+        # Run batch evaluation and verify the output shape
+        nnetEvalBatch = nnet.evaluate_network_multiple(batchInput)
         self.assertEqual(nnetEvalBatch.shape, (batchInput.shape[0], nnet.num_outputs()))
 
     def test_num_inputs(self):
@@ -77,10 +68,8 @@ class TestNNet(unittest.TestCase):
         emptyFile = "nnet/EmptyNetwork.nnet"
         with open(emptyFile, "w") as f:
             pass  # Create an empty file
-
         with self.assertRaises(ValueError):
             NNet(emptyFile)
-
         os.remove(emptyFile)
 
 if __name__ == '__main__':
