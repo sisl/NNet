@@ -1,6 +1,6 @@
 import sys
 import onnx
-import numpy as np  # Add this line
+import numpy as np
 from onnx import helper, numpy_helper, TensorProto
 from NNet.utils.readNNet import readNNet
 from NNet.utils.normalizeNNet import normalizeNNet
@@ -30,10 +30,10 @@ def nnet2onnx(
             weights, biases = normalizeNNet(nnetFile)
         else:
             weights, biases = readNNet(nnetFile)
-    except FileNotFoundError:
+    except FileNotFoundError as e:
         print(f"Error: The file {nnetFile} was not found.")
-        sys.exit(1)
-
+        raise e  # Raising the exception instead of exiting
+    
     inputSize = weights[0].shape[1]
     outputSize = weights[-1].shape[0]
     numLayers = len(weights)
@@ -50,23 +50,30 @@ def nnet2onnx(
 
     # Build the ONNX model layer by layer
     for i in range(numLayers):
-        # Use the output variable name for the last layer
-        outputName = f"H{i}"
+        weight_name = f"W{i}"
+        bias_name = f"B{i}"
+        matmul_output = f"M{i}"
+        add_output = f"H{i}"
+
+        # Use the final output variable name for the last layer
         if i == numLayers - 1:
-            outputName = outputVar
+            add_output = outputVar
 
-        # Weight matrix multiplication
-        operations.append(helper.make_node("MatMul", [f"W{i}", inputVar], [f"M{i}"]))
-        initializers.append(numpy_helper.from_array(weights[i].astype(np.float32), name=f"W{i}"))
+        # Add weight matrix multiplication
+        operations.append(helper.make_node("MatMul", [inputVar, weight_name], [matmul_output]))
+        initializers.append(numpy_helper.from_array(weights[i].astype(np.float32), name=weight_name))
 
-        # Bias addition
-        operations.append(helper.make_node("Add", [f"M{i}", f"B{i}"], [outputName]))
-        initializers.append(numpy_helper.from_array(biases[i].astype(np.float32), name=f"B{i}"))
+        # Add bias addition
+        operations.append(helper.make_node("Add", [matmul_output, bias_name], [add_output]))
+        initializers.append(numpy_helper.from_array(biases[i].astype(np.float32), name=bias_name))
 
         # Apply ReLU activation to all layers except the last
         if i < numLayers - 1:
-            operations.append(helper.make_node("Relu", [f"H{i}"], [f"R{i}"]))
-            inputVar = f"R{i}"
+            relu_output = f"R{i}"
+            operations.append(helper.make_node("Relu", [add_output], [relu_output]))
+            inputVar = relu_output
+        else:
+            inputVar = add_output  # Update inputVar to use as input for the next layer
 
     # Create the graph and model in ONNX format
     graph_proto = helper.make_graph(operations, "nnet2onnx_Model", inputs, outputs, initializers)
