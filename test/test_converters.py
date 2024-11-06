@@ -21,37 +21,36 @@ class TestConverters(unittest.TestCase):
             file = self.nnetFile.replace(".nnet", ext)
             if os.path.exists(file):
                 os.remove(file)
+                
+def test_onnx_conversion(self):
+    """Test conversion from .nnet to .onnx and back."""
+    onnxFile = self.nnetFile.replace(".nnet", ".onnx")
+    nnetFile2 = self.nnetFile.replace(".nnet", "v2.nnet")
 
-    def test_onnx_conversion(self):
-        """Test conversion from .nnet to .onnx and back."""
-        onnxFile = self.nnetFile.replace(".nnet", ".onnx")
-        nnetFile2 = self.nnetFile.replace(".nnet", "v2.nnet")
+    # Convert .nnet to .onnx and back to .nnet
+    nnet2onnx(self.nnetFile, onnxFile=onnxFile, normalizeNetwork=True)
+    self.assertTrue(os.path.exists(onnxFile), f"{onnxFile} not found!")
+    onnx2nnet(onnxFile, nnetFile=nnetFile2)
+    self.assertTrue(os.path.exists(nnetFile2), f"{nnetFile2} not found!")
 
-        # Convert .nnet to .onnx and back to .nnet
-        nnet2onnx(self.nnetFile, onnxFile=onnxFile, normalizeNetwork=True)
-        self.assertTrue(os.path.exists(onnxFile), f"{onnxFile} not found!")
-        onnx2nnet(onnxFile, nnetFile=nnetFile2)
-        self.assertTrue(os.path.exists(nnetFile2), f"{nnetFile2} not found!")
+    nnet = NNet(self.nnetFile)
+    nnet2 = NNet(nnetFile2)
 
-        # Validate outputs match
-        nnet = NNet(self.nnetFile)
-        nnet2 = NNet(nnetFile2)
-        sess = onnxruntime.InferenceSession(onnxFile, providers=['CPUExecutionProvider'])
+    # Validate ONNX inference
+    sess = onnxruntime.InferenceSession(onnxFile, providers=["CPUExecutionProvider"])
+    input_shape = sess.get_inputs()[0].shape
+    print(f"ONNX Model Input Shape: {input_shape}")
 
-        # Prepare the test input based on ONNX input shape
-        input_shape = sess.get_inputs()[0].shape
-        if len(input_shape) == 1:
-            testInput = np.array([1.0, 1.0, 1.0, 100.0, 1.0], dtype=np.float32)  # 1D input
-        else:
-            testInput = np.array([1.0, 1.0, 1.0, 100.0, 1.0], dtype=np.float32).reshape(1, -1)  # 2D input
+    testInput = np.random.rand(*input_shape).astype(np.float32)
+    onnxEval = sess.run(None, {sess.get_inputs()[0].name: testInput})[0]
 
-        onnxEval = sess.run(None, {sess.get_inputs()[0].name: testInput})[0]
-        nnetEval = nnet.evaluate_network(testInput.flatten())
-        nnetEval2 = nnet2.evaluate_network(testInput.flatten())
+    nnetEval = nnet.evaluate_network(testInput.flatten())
+    nnetEval2 = nnet2.evaluate_network(testInput.flatten())
 
-        self.assertEqual(onnxEval.shape, nnetEval.shape, "ONNX output shape mismatch")
-        np.testing.assert_allclose(nnetEval, onnxEval.flatten(), rtol=1e-3, atol=1e-2)
-        np.testing.assert_allclose(nnetEval, nnetEval2, rtol=1e-3, atol=1e-2)
+    self.assertEqual(onnxEval.shape, nnetEval.shape, "ONNX output shape mismatch")
+    np.testing.assert_allclose(onnxEval.flatten(), nnetEval, rtol=1e-3, atol=1e-2)
+    np.testing.assert_allclose(nnetEval, nnetEval2, rtol=1e-3, atol=1e-2)
+
 
     def test_pb_conversion(self):
         """Test conversion from .nnet to .pb and back with normalization."""
