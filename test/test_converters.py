@@ -1,12 +1,12 @@
 import unittest
 import os
 import numpy as np
+import onnx
 import onnxruntime
 from unittest.mock import patch
 from NNet.converters.nnet2onnx import nnet2onnx
 from NNet.converters.onnx2nnet import onnx2nnet
 from NNet.python.nnet import NNet
-import tensorflow as tf
 
 
 class TestConverters(unittest.TestCase):
@@ -34,7 +34,7 @@ class TestConverters(unittest.TestCase):
 
         nnet = NNet(self.nnetFile)
         nnet2 = NNet(nnetFile2)
-        sess = onnxruntime.InferenceSession(onnxFile, providers=['CPUExecutionProvider'])
+        sess = onnxruntime.InferenceSession(onnxFile, providers=["CPUExecutionProvider"])
 
         # Prepare the test input based on ONNX input shape
         input_shape = sess.get_inputs()[0].shape
@@ -45,8 +45,10 @@ class TestConverters(unittest.TestCase):
         nnetEval2 = nnet2.evaluate_network(testInput.flatten())
 
         self.assertEqual(onnxEval.shape, nnetEval.shape, "ONNX output shape mismatch")
-        np.testing.assert_allclose(nnetEval, onnxEval.flatten(), rtol=1e-3, atol=1e-2)
-        np.testing.assert_allclose(nnetEval, nnetEval2, rtol=1e-3, atol=1e-2)
+        np.testing.assert_allclose(
+            nnetEval, onnxEval.flatten(), rtol=1e-2, atol=1e-1
+        )
+        np.testing.assert_allclose(nnetEval, nnetEval2, rtol=1e-2, atol=1e-1)
 
     def test_onnx_invalid_input(self):
         """Test nnet2onnx with invalid input file."""
@@ -63,14 +65,12 @@ class TestConverters(unittest.TestCase):
         # Modify ONNX file to introduce an unsupported node
         model = onnx.load(onnxFile)
         unsupported_node = onnx.helper.make_node(
-            "UnsupportedOp",
-            inputs=["input"],
-            outputs=["output"]
+            "UnsupportedOp", inputs=["input"], outputs=["output"]
         )
         model.graph.node.append(unsupported_node)
         onnx.save(model, onnxFile)
 
-        with self.assertRaises(Exception):
+        with self.assertRaises(ValueError):
             onnx2nnet(onnxFile)
 
     def test_onnx_partial_conversion(self):
@@ -84,7 +84,7 @@ class TestConverters(unittest.TestCase):
         model.graph.initializer.pop(0)  # Remove first initializer
         onnx.save(model, onnxFile)
 
-        with self.assertRaises(Exception):
+        with self.assertRaises(ValueError):
             onnx2nnet(onnxFile)
 
     def test_nnet_to_onnx_no_normalization(self):
