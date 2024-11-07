@@ -20,20 +20,21 @@ def nnet2onnx(
 
     Args:
         nnetFile (str): Path to the .nnet file to convert.
-        onnxFile (Optional[str]): Optional, name for the created .onnx file. Defaults to the same name as the .nnet file.
-        outputVar (str): Optional, name of the output variable in ONNX. Defaults to 'y_out'.
+        onnxFile (Optional[str]): Name for the created .onnx file. Defaults to the same name as the .nnet file.
+        outputVar (str): Name of the output variable in ONNX. Defaults to 'y_out'.
         inputVar (str): Name of the input variable in ONNX. Defaults to 'X'.
-        normalizeNetwork (bool): If True, adapt the network weights and biases so that networks and inputs 
-                                 do not need normalization. Defaults to False.
+        normalizeNetwork (bool): If True, normalize network weights and biases. Defaults to False.
     """
-    # Validate the existence of the .nnet file
+    # Validate input file extension
     if not nnetFile.endswith(".nnet"):
         raise ValueError(f"Input file must have a .nnet extension. Got: {nnetFile}")
 
+    # Default ONNX file name
     if not onnxFile:
         onnxFile = nnetFile.replace(".nnet", ".onnx")
 
     try:
+        # Read weights and biases from the .nnet file
         if normalizeNetwork:
             weights, biases = normalizeNNet(nnetFile)
         else:
@@ -49,7 +50,18 @@ def nnet2onnx(
     outputSize = weights[-1].shape[0]
     numLayers = len(weights)
 
-    # Initialize the graph
+    # Validate dimensions
+    for i, (w, b) in enumerate(zip(weights, biases)):
+        if w.shape[1] != (weights[i - 1].shape[0] if i > 0 else inputSize):
+            raise ValueError(
+                f"Dimension mismatch at layer {i}: Weights {w.shape}, expected input size {w.shape[1]}"
+            )
+        if b.shape[0] != w.shape[0]:
+            raise ValueError(
+                f"Bias dimension mismatch at layer {i}: Biases {b.shape}, expected {w.shape[0]}"
+            )
+
+    # Create ONNX graph components
     inputs = [helper.make_tensor_value_info(inputVar, TensorProto.FLOAT, [None, inputSize])]
     outputs = [helper.make_tensor_value_info(outputVar, TensorProto.FLOAT, [None, outputSize])]
     nodes = []
@@ -57,17 +69,14 @@ def nnet2onnx(
 
     currentInput = inputVar
 
-    # Construct the ONNX graph layer by layer
+    # Construct ONNX graph layer by layer
     for i in range(numLayers):
         weightName = f"W{i}"
         biasName = f"B{i}"
         matmulName = f"M{i}"
-        addName = f"H{i}"
+        addName = f"H{i}" if i < numLayers - 1 else outputVar
 
-        if i == numLayers - 1:
-            addName = outputVar
-
-        # Add weights and biases
+        # Add weight and bias initializers
         initializers.append(numpy_helper.from_array(weights[i].astype(np.float32), name=weightName))
         initializers.append(numpy_helper.from_array(biases[i].astype(np.float32), name=biasName))
 
@@ -75,7 +84,7 @@ def nnet2onnx(
         nodes.append(helper.make_node("MatMul", [currentInput, weightName], [matmulName]))
         nodes.append(helper.make_node("Add", [matmulName, biasName], [addName]))
 
-        # Add ReLU activation for all layers except the last
+        # Apply ReLU activation for all layers except the last
         if i < numLayers - 1:
             reluName = f"R{i}"
             nodes.append(helper.make_node("Relu", [addName], [reluName]))
@@ -83,7 +92,7 @@ def nnet2onnx(
         else:
             currentInput = addName
 
-    # Create the ONNX graph
+    # Create the ONNX graph and model
     graph = helper.make_graph(
         nodes=nodes,
         name="NNet_to_ONNX",
@@ -91,7 +100,6 @@ def nnet2onnx(
         outputs=outputs,
         initializer=initializers,
     )
-
     model = helper.make_model(graph, producer_name="nnet2onnx")
 
     # Save the ONNX model to a file
@@ -106,9 +114,9 @@ def nnet2onnx(
 def main():
     parser = argparse.ArgumentParser(description="Convert a .nnet file to ONNX format.")
     parser.add_argument("nnetFile", type=str, help="The .nnet file to convert.")
-    parser.add_argument("--onnxFile", type=str, default="", help="Optional: Name of the output ONNX file.")
-    parser.add_argument("--outputVar", type=str, default="y_out", help="Optional: Name of the output variable.")
-    parser.add_argument("--inputVar", type=str, default="X", help="Optional: Name of the input variable.")
+    parser.add_argument("--onnxFile", type=str, default=None, help="Name of the output ONNX file.")
+    parser.add_argument("--outputVar", type=str, default="y_out", help="Name of the output variable.")
+    parser.add_argument("--inputVar", type=str, default="X", help="Name of the input variable.")
     parser.add_argument(
         "--normalize", action="store_true", help="Normalize network weights and biases before conversion."
     )
@@ -118,7 +126,7 @@ def main():
     try:
         nnet2onnx(
             nnetFile=args.nnetFile,
-            onnxFile=args.onnxFile if args.onnxFile else None,
+            onnxFile=args.onnxFile,
             outputVar=args.outputVar,
             inputVar=args.inputVar,
             normalizeNetwork=args.normalize,
