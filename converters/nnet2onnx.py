@@ -50,7 +50,7 @@ def nnet2onnx(
     outputSize = weights[-1].shape[0]
     numLayers = len(weights)
 
-    # Validate dimensions
+    # Validate dimensions and log layer info
     for i, (w, b) in enumerate(zip(weights, biases)):
         if w.shape[1] != (weights[i - 1].shape[0] if i > 0 else inputSize):
             raise ValueError(
@@ -60,6 +60,7 @@ def nnet2onnx(
             raise ValueError(
                 f"Bias dimension mismatch at layer {i}: Biases {b.shape}, expected {w.shape[0]}"
             )
+        print(f"Layer {i}: Weights {w.shape}, Biases {b.shape}")
 
     # Create ONNX graph components
     inputs = [helper.make_tensor_value_info(inputVar, TensorProto.FLOAT, [None, inputSize])]
