@@ -34,6 +34,11 @@ def nnet2onnx(
     except FileNotFoundError as e:
         raise FileNotFoundError(f"Error: The file {nnetFile} was not found.") from e
 
+    # Validate input shapes across layers
+    for i, (w, b) in enumerate(zip(weights, biases)):
+        if w.shape[0] != len(b):
+            raise ValueError(f"Mismatch at Layer {i}: Weight rows {w.shape[0]} != Bias length {len(b)}")
+
     inputSize = weights[0].shape[1]
     outputSize = weights[-1].shape[0]
     numLayers = len(weights)
@@ -52,8 +57,6 @@ def nnet2onnx(
     currentInput = inputVar  # Track the current input variable
     for i, (w, b) in enumerate(zip(weights, biases)):
         print(f"Layer {i}: Weights shape: {w.shape}, Biases shape: {b.shape}")
-        assert w.shape[1] == inputSize, f"Mismatch at Layer {i}: Expected {inputSize} inputs, got {w.shape[1]}"
-        inputSize = w.shape[0]  # Update inputSize for next layer
 
         # Define layer names
         weightName = f"W{i}"
@@ -96,10 +99,14 @@ if __name__ == "__main__":
     parser.add_argument("--normalize", action="store_true", help="Normalize network weights and biases")
     args = parser.parse_args()
 
-    nnet2onnx(
-        nnetFile=args.nnetFile,
-        onnxFile=args.onnxFile,
-        outputVar=args.outputVar,
-        inputVar=args.inputVar,
-        normalizeNetwork=args.normalize,
-    )
+    try:
+        nnet2onnx(
+            nnetFile=args.nnetFile,
+            onnxFile=args.onnxFile,
+            outputVar=args.outputVar,
+            inputVar=args.inputVar,
+            normalizeNetwork=args.normalize,
+        )
+    except Exception as e:
+        print(f"An error occurred: {e}")
+        sys.exit(1)
