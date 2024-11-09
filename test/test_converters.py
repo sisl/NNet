@@ -1,21 +1,23 @@
+import unittest 
 import os
 import numpy as np
 import onnxruntime
-import tensorflow as tf
-from unittest import TestCase
-from unittest.mock import patch  # Add this line
+from unittest.mock import patch
 from NNet.converters.nnet2onnx import nnet2onnx
 from NNet.converters.onnx2nnet import onnx2nnet
+from NNet.converters.pb2nnet import pb2nnet
+from NNet.converters.nnet2pb import nnet2pb
 from NNet.python.nnet import NNet
+import tensorflow as tf
 
+class TestConverters(unittest.TestCase):
 
-class TestConverters(TestCase):
     def setUp(self):
         self.nnetFile = "nnet/TestNetwork.nnet"
         self.assertTrue(os.path.exists(self.nnetFile), f"{self.nnetFile} not found!")
 
     def tearDown(self):
-        for ext in [".onnx", "v2.nnet"]:
+        for ext in [".onnx", ".pb", "v2.nnet", "_custom_output.pb"]:
             file = self.nnetFile.replace(".nnet", ext)
             if os.path.exists(file):
                 os.remove(file)
@@ -31,17 +33,20 @@ class TestConverters(TestCase):
 
         nnet = NNet(self.nnetFile)
         nnet2 = NNet(nnetFile2)
-        sess = onnxruntime.InferenceSession(onnxFile, providers=["CPUExecutionProvider"])
-
-        # Dynamically determine input shape from ONNX model
-        input_shape = sess.get_inputs()[0].shape  # Example: [None, 5]
-        input_dim = input_shape[1]  # Extract feature dimension
-        testInput = np.ones((1, input_dim), dtype=np.float32)  # Match expected input shape
-
+        sess = onnxruntime.InferenceSession(onnxFile, providers=['CPUExecutionProvider'])
+        
+        # Prepare the test input based on ONNX input shape
+        input_shape = sess.get_inputs()[0].shape
+        if len(input_shape) == 1:
+            testInput = np.array([1.0, 1.0, 1.0, 100.0, 1.0], dtype=np.float32)
+        elif len(input_shape) == 2:
+            testInput = np.array([1.0, 1.0, 1.0, 100.0, 1.0], dtype=np.float32).reshape(1, -1)
+        
         onnxEval = sess.run(None, {sess.get_inputs()[0].name: testInput})[0]
+
         nnetEval = nnet.evaluate_network(testInput.flatten())
         nnetEval2 = nnet2.evaluate_network(testInput.flatten())
-
+        
         self.assertEqual(onnxEval.shape, nnetEval.shape, "ONNX output shape mismatch")
         np.testing.assert_allclose(nnetEval, onnxEval.flatten(), rtol=1e-3, atol=1e-2)
         np.testing.assert_allclose(nnetEval, nnetEval2, rtol=1e-3, atol=1e-2)
