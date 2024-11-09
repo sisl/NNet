@@ -1,10 +1,13 @@
 import os
 import numpy as np
 import onnxruntime
+import tensorflow as tf
 from unittest import TestCase
+from unittest.mock import patch  # Add this line
 from NNet.converters.nnet2onnx import nnet2onnx
 from NNet.converters.onnx2nnet import onnx2nnet
 from NNet.python.nnet import NNet
+
 
 class TestConverters(TestCase):
     def setUp(self):
