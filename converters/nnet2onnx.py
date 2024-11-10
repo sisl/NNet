@@ -1,141 +1,50 @@
-import sys
-import onnx
+import unittest
+import os
 import numpy as np
-from onnx import helper, numpy_helper, TensorProto
-from NNet.utils.readNNet import readNNet
-from NNet.utils.normalizeNNet import normalizeNNet
-import argparse
-from typing import Optional
+import onnxruntime
+from unittest.mock import patch
+from NNet.converters.nnet2onnx import nnet2onnx
+from NNet.converters.onnx2nnet import onnx2nnet
+from NNet.python.nnet import NNet
 
 
-def nnet2onnx(
-    nnetFile: str,
-    onnxFile: Optional[str] = None,
-    outputVar: str = "y_out",
-    inputVar: str = "X",
-    normalizeNetwork: bool = False,
-) -> None:
-    """
-    Convert a .nnet file to ONNX format.
+class TestConverters(unittest.TestCase):
 
-    Args:
-        nnetFile (str): Path to the .nnet file to convert.
-        onnxFile (Optional[str]): Name for the created .onnx file. Defaults to the same name as the .nnet file.
-        outputVar (str): Name of the output variable in ONNX. Defaults to 'y_out'.
-        inputVar (str): Name of the input variable in ONNX. Defaults to 'X'.
-        normalizeNetwork (bool): If True, normalize network weights and biases. Defaults to False.
-    """
-    # Validate input file extension
-    if not nnetFile.endswith(".nnet"):
-        raise ValueError(f"Input file must have a .nnet extension. Got: {nnetFile}")
+    def setUp(self):
+        self.nnetFile = "nnet/TestNetwork.nnet"
+        self.assertTrue(os.path.exists(self.nnetFile), f"{self.nnetFile} not found!")
 
-    # Default ONNX file name
-    if not onnxFile:
-        onnxFile = nnetFile.replace(".nnet", ".onnx")
+    def tearDown(self):
+        for ext in [".onnx", "v2.nnet"]:
+            file = self.nnetFile.replace(".nnet", ext)
+            if os.path.exists(file):
+                os.remove(file)
 
-    try:
-        # Read weights and biases from the .nnet file
-        if normalizeNetwork:
-            weights, biases = normalizeNNet(nnetFile)
-        else:
-            weights, biases = readNNet(nnetFile)
-    except FileNotFoundError:
-        print(f"Error: The file {nnetFile} was not found.")
-        sys.exit(1)
-    except Exception as e:
-        print(f"Error reading .nnet file: {e}")
-        sys.exit(1)
+    def test_onnx(self):
+        onnxFile = self.nnetFile.replace(".nnet", ".onnx")
+        nnetFile2 = self.nnetFile.replace(".nnet", "v2.nnet")
 
-    inputSize = weights[0].shape[1]
-    outputSize = weights[-1].shape[0]
-    numLayers = len(weights)
+        nnet2onnx(self.nnetFile, onnxFile=onnxFile, normalizeNetwork=True)
+        self.assertTrue(os.path.exists(onnxFile), f"{onnxFile} not found!")
+        onnx2nnet(onnxFile, nnetFile=nnetFile2)
+        self.assertTrue(os.path.exists(nnetFile2), f"{nnetFile2} not found!")
 
-    # Validate dimensions and log layer info
-    for i, (w, b) in enumerate(zip(weights, biases)):
-        if w.shape[1] != (weights[i - 1].shape[0] if i > 0 else inputSize):
-            raise ValueError(
-                f"Dimension mismatch at layer {i}: Weights {w.shape}, expected input size {w.shape[1]}"
-            )
-        if b.shape[0] != w.shape[0]:
-            raise ValueError(
-                f"Bias dimension mismatch at layer {i}: Biases {b.shape}, expected {w.shape[0]}"
-            )
-        print(f"Layer {i}: Weights {w.shape}, Biases {b.shape}")
+        nnet = NNet(self.nnetFile)
+        nnet2 = NNet(nnetFile2)
+        sess = onnxruntime.InferenceSession(onnxFile, providers=['CPUExecutionProvider'])
 
-    # Create ONNX graph components
-    inputs = [helper.make_tensor_value_info(inputVar, TensorProto.FLOAT, [None, inputSize])]
-    outputs = [helper.make_tensor_value_info(outputVar, TensorProto.FLOAT, [None, outputSize])]
-    nodes = []
-    initializers = []
+        input_shape = sess.get_inputs()[0].shape
+        testInput = np.array([1.0, 1.0, 1.0, 100.0, 1.0], dtype=np.float32).reshape(1, -1)
+        onnxEval = sess.run(None, {sess.get_inputs()[0].name: testInput})[0]
 
-    currentInput = inputVar
+        nnetEval = nnet.evaluate_network(testInput.flatten())
+        nnetEval2 = nnet2.evaluate_network(testInput.flatten())
 
-    # Construct ONNX graph layer by layer
-    for i in range(numLayers):
-        weightName = f"W{i}"
-        biasName = f"B{i}"
-        matmulName = f"M{i}"
-        addName = f"H{i}" if i < numLayers - 1 else outputVar
+        self.assertEqual(onnxEval.shape, nnetEval.shape, "ONNX output shape mismatch")
+        np.testing.assert_allclose(nnetEval, onnxEval.flatten(), rtol=1e-3, atol=1e-2)
+        np.testing.assert_allclose(nnetEval, nnetEval2, rtol=1e-3, atol=1e-2)
 
-        # Add weight and bias initializers
-        initializers.append(numpy_helper.from_array(weights[i].astype(np.float32), name=weightName))
-        initializers.append(numpy_helper.from_array(biases[i].astype(np.float32), name=biasName))
-
-        # Add MatMul and Add nodes
-        nodes.append(helper.make_node("MatMul", [currentInput, weightName], [matmulName]))
-        nodes.append(helper.make_node("Add", [matmulName, biasName], [addName]))
-
-        # Apply ReLU activation for all layers except the last
-        if i < numLayers - 1:
-            reluName = f"R{i}"
-            nodes.append(helper.make_node("Relu", [addName], [reluName]))
-            currentInput = reluName
-        else:
-            currentInput = addName
-
-    # Create the ONNX graph and model
-    graph = helper.make_graph(
-        nodes=nodes,
-        name="NNet_to_ONNX",
-        inputs=inputs,
-        outputs=outputs,
-        initializer=initializers,
-    )
-    model = helper.make_model(graph, producer_name="nnet2onnx")
-
-    # Save the ONNX model to a file
-    try:
-        onnx.save_model(model, onnxFile)
-        print(f"Successfully converted {nnetFile} to {onnxFile}")
-    except Exception as e:
-        print(f"Failed to save ONNX model: {e}")
-        sys.exit(1)
-
-
-def main():
-    parser = argparse.ArgumentParser(description="Convert a .nnet file to ONNX format.")
-    parser.add_argument("nnetFile", type=str, help="The .nnet file to convert.")
-    parser.add_argument("--onnxFile", type=str, default=None, help="Name of the output ONNX file.")
-    parser.add_argument("--outputVar", type=str, default="y_out", help="Name of the output variable.")
-    parser.add_argument("--inputVar", type=str, default="X", help="Name of the input variable.")
-    parser.add_argument(
-        "--normalize", action="store_true", help="Normalize network weights and biases before conversion."
-    )
-
-    args = parser.parse_args()
-
-    try:
-        nnet2onnx(
-            nnetFile=args.nnetFile,
-            onnxFile=args.onnxFile,
-            outputVar=args.outputVar,
-            inputVar=args.inputVar,
-            normalizeNetwork=args.normalize,
-        )
-    except Exception as e:
-        print(f"Error during conversion: {e}")
-        sys.exit(1)
-
-
-if __name__ == "__main__":
-    main()
+    @patch("NNet.converters.nnet2onnx.readNNet", side_effect=FileNotFoundError)
+    def test_missing_nnet_file(self, mock_read):
+        with self.assertRaises(FileNotFoundError):
+            nnet2onnx("missing_file.nnet")
