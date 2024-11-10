@@ -1,4 +1,4 @@
-import unittest 
+import unittest
 import os
 import numpy as np
 import onnxruntime
@@ -9,6 +9,7 @@ from NNet.converters.pb2nnet import pb2nnet
 from NNet.converters.nnet2pb import nnet2pb
 from NNet.python.nnet import NNet
 import tensorflow as tf
+
 
 class TestConverters(unittest.TestCase):
 
@@ -23,36 +24,36 @@ class TestConverters(unittest.TestCase):
                 os.remove(file)
 
     def test_onnx(self):
-    onnxFile = self.nnetFile.replace(".nnet", ".onnx")
-    nnetFile2 = self.nnetFile.replace(".nnet", "v2.nnet")
+        onnxFile = self.nnetFile.replace(".nnet", ".onnx")
+        nnetFile2 = self.nnetFile.replace(".nnet", "v2.nnet")
 
-    nnet2onnx(self.nnetFile, onnxFile=onnxFile, normalizeNetwork=True)
-    self.assertTrue(os.path.exists(onnxFile), f"{onnxFile} not found!")
-    onnx2nnet(onnxFile, nnetFile=nnetFile2)
-    self.assertTrue(os.path.exists(nnetFile2), f"{nnetFile2} not found!")
+        nnet2onnx(self.nnetFile, onnxFile=onnxFile, normalizeNetwork=True)
+        self.assertTrue(os.path.exists(onnxFile), f"{onnxFile} not found!")
+        onnx2nnet(onnxFile, nnetFile=nnetFile2)
+        self.assertTrue(os.path.exists(nnetFile2), f"{nnetFile2} not found!")
 
-    nnet = NNet(self.nnetFile)
-    nnet2 = NNet(nnetFile2)
-    sess = onnxruntime.InferenceSession(onnxFile, providers=['CPUExecutionProvider'])
+        nnet = NNet(self.nnetFile)
+        nnet2 = NNet(nnetFile2)
+        sess = onnxruntime.InferenceSession(onnxFile, providers=['CPUExecutionProvider'])
 
-    # Get input shape from ONNX model
-    input_shape = sess.get_inputs()[0].shape  # Example: [None, 5]
-    print(f"ONNX Input Shape: {input_shape}")
+        # Get input shape from ONNX model
+        input_shape = sess.get_inputs()[0].shape  # Example: [None, 5]
+        print(f"ONNX Input Shape: {input_shape}")
 
-    # Ensure testInput matches the input shape
-    testInput = np.array([1.0, 1.0, 1.0, 100.0, 1.0], dtype=np.float32)
-    if len(input_shape) == 2:  # Add batch dimension if required
-        testInput = testInput.reshape(1, -1)  # Reshape to [1, 5]
+        # Ensure testInput matches the input shape
+        testInput = np.array([1.0, 1.0, 1.0, 100.0, 1.0], dtype=np.float32)
+        if len(input_shape) == 2:  # Add batch dimension if required
+            testInput = testInput.reshape(1, -1)  # Reshape to [1, 5]
 
-    # Perform inference
-    onnxEval = sess.run(None, {sess.get_inputs()[0].name: testInput})[0]
+        # Perform inference
+        onnxEval = sess.run(None, {sess.get_inputs()[0].name: testInput})[0]
 
-    nnetEval = nnet.evaluate_network(testInput.flatten())
-    nnetEval2 = nnet2.evaluate_network(testInput.flatten())
+        nnetEval = nnet.evaluate_network(testInput.flatten())
+        nnetEval2 = nnet2.evaluate_network(testInput.flatten())
 
-    self.assertEqual(onnxEval.shape, nnetEval.shape, "ONNX output shape mismatch")
-    np.testing.assert_allclose(nnetEval, onnxEval.flatten(), rtol=1e-3, atol=1e-2)
-    np.testing.assert_allclose(nnetEval, nnetEval2, rtol=1e-3, atol=1e-2)
+        self.assertEqual(onnxEval.shape, nnetEval.shape, "ONNX output shape mismatch")
+        np.testing.assert_allclose(nnetEval, onnxEval.flatten(), rtol=1e-3, atol=1e-2)
+        np.testing.assert_allclose(nnetEval, nnetEval2, rtol=1e-3, atol=1e-2)
 
     def test_pb(self):
         self._test_pb_conversion(normalizeNetwork=True)
