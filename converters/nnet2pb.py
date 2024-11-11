@@ -57,7 +57,7 @@ def nnet2pb(
     frozen_func = convert_variables_to_constants_v2(concrete_func)
     frozen_graph_def = frozen_func.graph.as_graph_def()
 
-'''
+    '''
     Given a session with a graph loaded, save only the variables needed for evaluation to a .pb file
     
     Args:
