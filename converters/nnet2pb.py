@@ -6,9 +6,6 @@ from tensorflow.python.framework.convert_to_constants import convert_variables_t
 from NNet.utils.readNNet import readNNet
 from NNet.utils.normalizeNNet import normalizeNNet
 
-# Disable GPU usage
-os.environ["CUDA_VISIBLE_DEVICES"] = "-1"
-
 def nnet2pb(
     nnetFile: str, 
     pbFile: str = "", 
