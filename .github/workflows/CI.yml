@@ -10,7 +10,7 @@ on:
   workflow_dispatch:
 
 jobs:
-  python-tests:
+  tests:
     runs-on: ubuntu-latest
     steps:
       - name: Check out the repository
