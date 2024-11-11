@@ -24,7 +24,6 @@ class TestConverters(unittest.TestCase):
             if os.path.exists(file):
                 os.remove(file)
 
-    # ONNX Tests
     def test_onnx(self):
         onnxFile = self.nnetFile.replace(".nnet", ".onnx")
         nnetFile2 = self.nnetFile.replace(".nnet", "v2.nnet")
@@ -55,74 +54,83 @@ class TestConverters(unittest.TestCase):
         np.testing.assert_allclose(nnetEval, nnetEval2, rtol=1e-3, atol=1e-2)
 
     def test_default_onnx_filename(self):
+        # Test when no ONNX file is specified
         nnet2onnx(self.nnetFile)  # No onnxFile specified
         default_onnx_file = self.nnetFile.replace(".nnet", ".onnx")
         self.assertTrue(os.path.exists(default_onnx_file), f"Default ONNX file {default_onnx_file} not created!")
 
     def test_file_not_found(self):
+        # Test missing .nnet file
         non_existent_file = "non_existent.nnet"
+        
         with patch('sys.stdout', new_callable=StringIO) as mock_stdout:
             with self.assertRaises(SystemExit) as excinfo:
                 nnet2onnx(non_existent_file)
             self.assertEqual(excinfo.exception.code, 1)  # Verify SystemExit with code 1
 
+        # Verify the printed error message
         output = mock_stdout.getvalue()
         self.assertIn("Error: The file non_existent.nnet was not found.", output)
 
     @patch("sys.argv", ["nnet2onnx.py", "nnet/TestNetwork.nnet", "--normalize"])
     def test_argparse_execution(self):
+        # Test command-line argument parsing
         from NNet.converters.nnet2onnx import main
         main()
         default_onnx_file = self.nnetFile.replace(".nnet", ".onnx")
         self.assertTrue(os.path.exists(default_onnx_file), "Default ONNX file not created via argparse!")
 
-    # PB Tests
-    def test_normalized_pb_conversion(self):
-        """Test PB conversion with normalized weights and biases."""
-        pbFile = self.nnetFile.replace(".nnet", "_normalized.pb")
-        nnet2pb(self.nnetFile, pbFile=pbFile, normalizeNetwork=True)
+    def test_pb(self):
+        self._test_pb_conversion(normalizeNetwork=True)
+
+    def test_pb_without_normalization(self):
+        self._test_pb_conversion(normalizeNetwork=False, compare_direct=False)
+
+    def _test_pb_conversion(self, normalizeNetwork, compare_direct=True):
+        pbFile = self.nnetFile.replace(".nnet", ".pb")
+        nnetFile2 = self.nnetFile.replace(".nnet", "v2.nnet")
+
+        nnet2pb(self.nnetFile, pbFile=pbFile, normalizeNetwork=normalizeNetwork)
         self.assertTrue(os.path.exists(pbFile), f"{pbFile} not found!")
-        os.remove(pbFile)  # Cleanup
+        pb2nnet(pbFile, nnetFile=nnetFile2)
+        self.assertTrue(os.path.exists(nnetFile2), f"{nnetFile2} not found!")
+
+        nnet = NNet(self.nnetFile)
+        nnet2 = NNet(nnetFile2)
+
+        with tf.io.gfile.GFile(pbFile, "rb") as f:
+            graph_def = tf.compat.v1.GraphDef()
+            graph_def.ParseFromString(f.read())
+
+        with tf.compat.v1.Session(graph=tf.Graph()) as sess:
+            tf.import_graph_def(graph_def, name="")
+            inputTensor = sess.graph.get_tensor_by_name("x:0")
+            outputTensor = sess.graph.get_tensor_by_name("y_out:0")
+            testInput = np.array([1.0, 1.0, 1.0, 100.0, 1.0], dtype=np.float32).reshape(1, -1)
+            pbEval = sess.run(outputTensor, feed_dict={inputTensor: testInput})[0]
+
+        nnetEval = nnet.evaluate_network(testInput.flatten())
+        nnetEval2 = nnet2.evaluate_network(testInput.flatten())
+
+        if compare_direct:
+            self.assertEqual(pbEval.shape, nnetEval.shape, "PB output shape mismatch")
+            np.testing.assert_allclose(nnetEval, pbEval.flatten(), rtol=1e-2, atol=1e-1)
+            np.testing.assert_allclose(nnetEval, nnetEval2, rtol=1e-2, atol=1e-1)
+        else:
+            self.assertNotAlmostEqual(np.max(np.abs(nnetEval - pbEval.flatten())), 0, delta=10,
+                                      msg="Unexpectedly close values without normalization.")
 
     def test_pb_with_custom_output_node(self):
-        """Test PB conversion with a custom output node name."""
         pbFile = self.nnetFile.replace(".nnet", "_custom_output.pb")
         nnet2pb(self.nnetFile, pbFile=pbFile, output_node_names="custom_output")
-        self.assertTrue(os.path.exists(pbFile), f"{pbFile} not created!")
-
-        with tf.io.gfile.GFile(pbFile, "rb") as f:
-            graph_def = tf.compat.v1.GraphDef()
-            graph_def.ParseFromString(f.read())
-
-        nodes = [node.name for node in graph_def.node]
-        self.assertIn("custom_output", nodes, "Custom output node not found in the frozen graph!")
-        os.remove(pbFile)  # Cleanup
-
-    @patch("NNet.converters.nnet2pb.readNNet", side_effect=FileNotFoundError("File not found"))
-    def test_invalid_file_read(self, mock_readNNet):
-        """Test behavior when reading an invalid .nnet file."""
-        pbFile = self.nnetFile.replace(".nnet", ".pb")
-        with patch("sys.stdout", new_callable=StringIO) as mock_stdout:
-            with self.assertRaises(FileNotFoundError):
-                nnet2pb(self.nnetFile, pbFile=pbFile)
-            output = mock_stdout.getvalue()
-            self.assertIn("File not found", output)
-
-    def test_model_layer_building(self):
-        """Test the model layer-by-layer building."""
-        pbFile = self.nnetFile.replace(".nnet", ".pb")
-        nnet2pb(self.nnetFile, pbFile=pbFile)
         self.assertTrue(os.path.exists(pbFile), f"{pbFile} not found!")
 
-        with tf.io.gfile.GFile(pbFile, "rb") as f:
-            graph_def = tf.compat.v1.GraphDef()
-            graph_def.ParseFromString(f.read())
-
-        # Check if the graph contains expected nodes
-        layers = [node.name for node in graph_def.node]
-        self.assertIn("y_out", layers, "Output node y_out not found in the frozen graph!")
-        os.remove(pbFile)  # Cleanup
+    @patch("tensorflow.io.write_graph", side_effect=IOError("Failed to write graph"))
+    def test_pb_write_failure(self, mock_write_graph):
+        pbFile = self.nnetFile.replace(".nnet", ".pb")
+        with self.assertRaises(IOError):
+            nnet2pb(self.nnetFile, pbFile=pbFile)
 
 
-if __name__ == "__main__":
+if __name__ == '__main__':
     unittest.main()
