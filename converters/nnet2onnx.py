@@ -9,6 +9,19 @@ from NNet.utils.normalizeNNet import normalizeNNet
 def nnet2onnx(
     nnetFile, onnxFile=None, outputVar="y_out", inputVar="X", normalizeNetwork=False
 ):
+    """
+    Convert a .nnet file to ONNX format.
+
+    Args:
+        nnetFile (str): Path to the .nnet file.
+        onnxFile (str): Path for the output ONNX file. If None, will replace the extension in nnetFile.
+        outputVar (str): Name of the ONNX output variable.
+        inputVar (str): Name of the ONNX input variable.
+        normalizeNetwork (bool): Whether to normalize the network weights and biases.
+
+    Raises:
+        ValueError: If an error occurs during file reading or conversion.
+    """
     if not nnetFile.endswith(".nnet"):
         raise ValueError(f"Input file must have a .nnet extension. Got: {nnetFile}")
 
@@ -60,3 +73,4 @@ def nnet2onnx(
     )
     model = helper.make_model(graph, producer_name="nnet2onnx")
     onnx.save_model(model, onnxFile)
+    print(f"Successfully converted {nnetFile} to {onnxFile}")
