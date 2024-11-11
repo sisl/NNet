@@ -1,76 +1,102 @@
 import sys
-import numpy as np
 import onnx
 from onnx import helper, numpy_helper, TensorProto
 from NNet.utils.readNNet import readNNet
 from NNet.utils.normalizeNNet import normalizeNNet
+import argparse
+from typing import Optional
 
 
 def nnet2onnx(
-    nnetFile, onnxFile=None, outputVar="y_out", inputVar="X", normalizeNetwork=False
-):
+    nnetFile: str,
+    onnxFile: Optional[str] = "",
+    outputVar: str = "y_out",
+    inputVar: str = "X",
+    normalizeNetwork: bool = False
+) -> None:
     """
     Convert a .nnet file to ONNX format.
 
     Args:
-        nnetFile (str): Path to the .nnet file.
-        onnxFile (str): Path for the output ONNX file. If None, will replace the extension in nnetFile.
-        outputVar (str): Name of the ONNX output variable.
-        inputVar (str): Name of the ONNX input variable.
-        normalizeNetwork (bool): Whether to normalize the network weights and biases.
-
-    Raises:
-        ValueError: If an error occurs during file reading or conversion.
+        nnetFile (str): Path to the .nnet file to convert.
+        onnxFile (Optional[str]): Optional, name for the created .onnx file. Defaults to the same name as the .nnet file.
+        outputVar (str): Optional, name of the output variable in ONNX. Defaults to 'y_out'.
+        inputVar (str): Name of the input variable in ONNX. Defaults to 'X'.
+        normalizeNetwork (bool): If True, adapt the network weights and biases so that networks and inputs do not need normalization. Defaults to False.
     """
-    if not nnetFile.endswith(".nnet"):
-        raise ValueError(f"Input file must have a .nnet extension. Got: {nnetFile}")
-
-    if not onnxFile:
-        onnxFile = nnetFile.replace(".nnet", ".onnx")
-
     try:
-        weights, biases = (
-            normalizeNNet(nnetFile) if normalizeNetwork else readNNet(nnetFile)
-        )
-    except Exception as e:
-        raise ValueError(f"Error reading NNet file: {e}")
+        if normalizeNetwork:
+            weights, biases = normalizeNNet(nnetFile)
+        else:
+            weights, biases = readNNet(nnetFile)
+    except FileNotFoundError:
+        print(f"Error: The file {nnetFile} was not found.")
+        sys.exit(1)
 
     inputSize = weights[0].shape[1]
     outputSize = weights[-1].shape[0]
+    numLayers = len(weights)
 
-    inputs = [helper.make_tensor_value_info(inputVar, TensorProto.FLOAT, [None, inputSize])]
-    outputs = [helper.make_tensor_value_info(outputVar, TensorProto.FLOAT, [None, outputSize])]
+    # Default ONNX filename if none specified
+    if not onnxFile:
+        onnxFile = f"{nnetFile[:-5]}.onnx"
 
-    nodes = []
+    # Initialize the graph
+    inputs = [helper.make_tensor_value_info(inputVar, TensorProto.FLOAT, [inputSize])]
+    outputs = [helper.make_tensor_value_info(outputVar, TensorProto.FLOAT, [outputSize])]
+    operations = []
     initializers = []
-    currentInput = inputVar
 
-    for i, (w, b) in enumerate(zip(weights, biases)):
-        weightName = f"W{i}"
-        biasName = f"B{i}"
-        matmulName = f"M{i}"
-        addName = f"H{i}" if i < len(weights) - 1 else outputVar
+    # Build the ONNX model layer by layer
+    for i in range(numLayers):
+        # Use the output variable name for the last layer
+        outputName = f"H{i}"
+        if i == numLayers - 1:
+            outputName = outputVar
 
-        initializers.append(numpy_helper.from_array(w.astype(np.float32), name=weightName))
-        initializers.append(numpy_helper.from_array(b.astype(np.float32), name=biasName))
+        # Weight matrix multiplication
+        operations.append(helper.make_node("MatMul", [inputVar, f"W{i}"], [f"M{i}"]))
+        initializers.append(numpy_helper.from_array(weights[i].astype(np.float32), name=f"W{i}"))
 
-        nodes.append(helper.make_node("MatMul", [currentInput, weightName], [matmulName]))
-        nodes.append(helper.make_node("Add", [matmulName, biasName], [addName]))
+        # Bias addition
+        operations.append(helper.make_node("Add", [f"M{i}", f"B{i}"], [outputName]))
+        initializers.append(numpy_helper.from_array(biases[i].astype(np.float32), name=f"B{i}"))
 
-        if i < len(weights) - 1:
-            reluName = f"R{i}"
-            nodes.append(helper.make_node("Relu", [addName], [reluName]))
-            currentInput = reluName
-        else:
-            currentInput = addName
+        # Apply ReLU activation to all layers except the last
+        if i < numLayers - 1:
+            operations.append(helper.make_node("Relu", [outputName], [f"R{i}"]))
+            inputVar = f"R{i}"
 
-    graph = helper.make_graph(
-        nodes=nodes,
-        name="NNet_to_ONNX",
-        inputs=inputs,
-        outputs=outputs,
-        initializer=initializers,
+    # Create the graph and model in ONNX format
+    graph_proto = helper.make_graph(operations, "nnet2onnx_Model", inputs, outputs, initializers)
+    model_def = helper.make_model(graph_proto)
+
+    # Print success message
+    print(f"Converted NNet model at {nnetFile} to an ONNX model at {onnxFile}")
+
+    # Save the ONNX model to file
+    onnx.save(model_def, onnxFile)
+
+
+def main():
+    # Parse command-line arguments
+    parser = argparse.ArgumentParser(description="Convert a .nnet file to ONNX format.")
+    parser.add_argument("nnetFile", type=str, help="The .nnet file to convert")
+    parser.add_argument("--onnxFile", type=str, default="", help="Optional: Name of the output ONNX file")
+    parser.add_argument("--outputVar", type=str, default="y_out", help="Optional: Name of the output variable")
+    parser.add_argument("--inputVar", type=str, default="X", help="Optional: Name of the input variable")
+    parser.add_argument("--normalize", action="store_true", help="Normalize network weights and biases")
+    args = parser.parse_args()
+
+    # Call the nnet2onnx function with parsed arguments
+    nnet2onnx(
+        nnetFile=args.nnetFile,
+        onnxFile=args.onnxFile,
+        outputVar=args.outputVar,
+        inputVar=args.inputVar,
+        normalizeNetwork=args.normalize
     )
-    model = helper.make_model(graph, producer_name="nnet2onnx")
-    onnx.save_model(model, onnxFile)
-    print(f"Successfully converted {nnetFile} to {onnxFile}")
+
+
+if __name__ == "__main__":
+    main()
