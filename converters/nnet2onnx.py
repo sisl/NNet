@@ -1,6 +1,6 @@
 import sys
 import onnx
-import numpy as np  # Add this line
+import numpy as np 
 from onnx import helper, numpy_helper, TensorProto
 from NNet.utils.readNNet import readNNet
 from NNet.utils.normalizeNNet import normalizeNNet
