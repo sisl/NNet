@@ -6,6 +6,9 @@ from tensorflow.python.framework.convert_to_constants import convert_variables_t
 from NNet.utils.readNNet import readNNet
 from NNet.utils.normalizeNNet import normalizeNNet
 
+# Disable GPU usage
+os.environ["CUDA_VISIBLE_DEVICES"] = "-1"
+
 def nnet2pb(
     nnetFile: str, 
     pbFile: str = "", 
@@ -54,6 +57,15 @@ def nnet2pb(
     frozen_func = convert_variables_to_constants_v2(concrete_func)
     frozen_graph_def = frozen_func.graph.as_graph_def()
 
+'''
+    Given a session with a graph loaded, save only the variables needed for evaluation to a .pb file
+    
+    Args:
+        sess (tf.session): Tensorflow session where graph is defined
+        output_graph_name (str): Name of file for writing frozen graph
+        output_node_names (str): Name of the output operation in the graph, comma separated if there are multiple output operations
+    '''
+    
     # Save the frozen graph to a .pb file
     tf.io.write_graph(frozen_graph_def, ".", pbFile, as_text=False)
     print(f"Saved frozen graph to {pbFile}")
