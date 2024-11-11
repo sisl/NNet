@@ -98,15 +98,16 @@ class TestConverters(unittest.TestCase):
         self.assertIn("custom_output", nodes, "Custom output node not found in the frozen graph!")
         os.remove(pbFile)  # Cleanup
 
-    @patch("NNet.utils.readNNet.readNNet", side_effect=FileNotFoundError("File not found"))
-    def test_invalid_file_read(self, mock_readNNet):
-        """Test behavior when reading an invalid .nnet file."""
-        pbFile = self.nnetFile.replace(".nnet", ".pb")
-        with patch("sys.stdout", new_callable=StringIO) as mock_stdout:
-            with self.assertRaises(FileNotFoundError):
-                nnet2pb(self.nnetFile, pbFile=pbFile)
-            output = mock_stdout.getvalue()
-            self.assertIn("File not found", output)
+    @patch("NNet.converters.nnet2pb.readNNet", side_effect=FileNotFoundError("File not found"))
+def test_invalid_file_read(self, mock_readNNet):
+    """Test behavior when reading an invalid .nnet file."""
+    pbFile = self.nnetFile.replace(".nnet", ".pb")
+    with patch("sys.stdout", new_callable=StringIO) as mock_stdout:
+        with self.assertRaises(FileNotFoundError):
+            nnet2pb(self.nnetFile, pbFile=pbFile)
+        output = mock_stdout.getvalue()
+        self.assertIn("File not found", output)
+
 
     def test_model_layer_building(self):
         """Test the model layer-by-layer building."""
