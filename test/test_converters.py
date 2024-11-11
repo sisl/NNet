@@ -3,6 +3,7 @@ import os
 import numpy as np
 import onnxruntime
 from unittest.mock import patch
+from io import StringIO
 from NNet.converters.nnet2onnx import nnet2onnx
 from NNet.converters.onnx2nnet import onnx2nnet
 from NNet.converters.pb2nnet import pb2nnet
@@ -61,9 +62,15 @@ class TestConverters(unittest.TestCase):
     def test_file_not_found(self):
         # Test missing .nnet file
         non_existent_file = "non_existent.nnet"
-        with self.assertRaises(SystemExit) as excinfo:
-            nnet2onnx(non_existent_file)
-        self.assertIn("Error: The file non_existent.nnet was not found.", str(excinfo.exception))
+        
+        with patch('sys.stdout', new_callable=StringIO) as mock_stdout:
+            with self.assertRaises(SystemExit) as excinfo:
+                nnet2onnx(non_existent_file)
+            self.assertEqual(excinfo.exception.code, 1)  # Verify SystemExit with code 1
+
+        # Verify the printed error message
+        output = mock_stdout.getvalue()
+        self.assertIn("Error: The file non_existent.nnet was not found.", output)
 
     @patch("sys.argv", ["nnet2onnx.py", "nnet/TestNetwork.nnet", "--normalize"])
     def test_argparse_execution(self):
