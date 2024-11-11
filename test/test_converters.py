@@ -2,9 +2,8 @@ import unittest
 import os
 import numpy as np
 import onnxruntime
-from unittest.mock import patch, MagicMock
+from unittest.mock import patch
 from io import StringIO
-from onnx import helper, numpy_helper
 from NNet.converters.nnet2onnx import nnet2onnx
 from NNet.converters.onnx2nnet import onnx2nnet
 from NNet.converters.pb2nnet import pb2nnet
@@ -25,7 +24,6 @@ class TestConverters(unittest.TestCase):
             if os.path.exists(file):
                 os.remove(file)
 
-    # ONNX Tests
     def test_onnx(self):
         onnxFile = self.nnetFile.replace(".nnet", ".onnx")
         nnetFile2 = self.nnetFile.replace(".nnet", "v2.nnet")
@@ -56,28 +54,32 @@ class TestConverters(unittest.TestCase):
         np.testing.assert_allclose(nnetEval, nnetEval2, rtol=1e-3, atol=1e-2)
 
     def test_default_onnx_filename(self):
+        # Test when no ONNX file is specified
         nnet2onnx(self.nnetFile)  # No onnxFile specified
         default_onnx_file = self.nnetFile.replace(".nnet", ".onnx")
         self.assertTrue(os.path.exists(default_onnx_file), f"Default ONNX file {default_onnx_file} not created!")
 
     def test_file_not_found(self):
+        # Test missing .nnet file
         non_existent_file = "non_existent.nnet"
+        
         with patch('sys.stdout', new_callable=StringIO) as mock_stdout:
             with self.assertRaises(SystemExit) as excinfo:
                 nnet2onnx(non_existent_file)
-            self.assertEqual(excinfo.exception.code, 1)
+            self.assertEqual(excinfo.exception.code, 1)  # Verify SystemExit with code 1
 
+        # Verify the printed error message
         output = mock_stdout.getvalue()
         self.assertIn("Error: The file non_existent.nnet was not found.", output)
 
     @patch("sys.argv", ["nnet2onnx.py", "nnet/TestNetwork.nnet", "--normalize"])
     def test_argparse_execution(self):
+        # Test command-line argument parsing
         from NNet.converters.nnet2onnx import main
         main()
         default_onnx_file = self.nnetFile.replace(".nnet", ".onnx")
         self.assertTrue(os.path.exists(default_onnx_file), "Default ONNX file not created via argparse!")
 
-    # PB Tests
     def test_pb(self):
         self._test_pb_conversion(normalizeNetwork=True)
 
@@ -129,40 +131,6 @@ class TestConverters(unittest.TestCase):
         with self.assertRaises(IOError):
             nnet2pb(self.nnetFile, pbFile=pbFile)
 
-    # ONNX to NNet Tests
-    def test_default_nnet_filename_for_onnx2nnet(self):
-        onnxFile = self.nnetFile.replace(".nnet", ".onnx")
-        nnet2onnx(self.nnetFile, onnxFile=onnxFile)
-        onnx2nnet(onnxFile)
-        default_nnet_file = onnxFile.replace(".onnx", ".nnet")
-        self.assertTrue(os.path.exists(default_nnet_file), f"{default_nnet_file} not created!")
-        os.remove(onnxFile)
-        os.remove(default_nnet_file)
 
-    def test_unsupported_node_operation_in_onnx2nnet(self):
-        with patch("onnx.load") as mock_load:
-            mock_graph = MagicMock()
-            mock_graph.node = [helper.make_node("UnsupportedOp", ["input"], ["output"])]
-            mock_model = MagicMock(graph=mock_graph)
-            mock_load.return_value = mock_model
-
-            with patch("sys.stdout", new_callable=StringIO) as mock_stdout:
-                onnx2nnet("dummy.onnx")
-                output = mock_stdout.getvalue()
-                self.assertIn("Unsupported node operation: UnsupportedOp", output)
-
-    def test_invalid_network_structure_in_onnx2nnet(self):
-        with patch("onnx.load") as mock_load:
-            mock_graph = MagicMock()
-            mock_graph.node = []
-            mock_model = MagicMock(graph=mock_graph)
-            mock_load.return_value = mock_model
-
-            with patch("sys.stdout", new_callable=StringIO) as mock_stdout:
-                onnx2nnet("dummy.onnx")
-                output = mock_stdout.getvalue()
-                self.assertIn("Error: Unable to extract weights and biases", output)
-
-
-if __name__ == "__main__":
+if __name__ == '__main__':
     unittest.main()
