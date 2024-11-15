@@ -13,15 +13,17 @@ jobs:
   tests:
     runs-on: ubuntu-latest
     steps:
+      # Step 1: Check out the repository
       - name: Check out the repository
         uses: actions/checkout@v4  # Fetch the code
 
+      # Step 2: Python Section
       - name: Set up Python
         uses: actions/setup-python@v4  # Set up the Python environment
         with:
           python-version: '3.10'
 
-      - name: Install Dependencies
+      - name: Install Python Dependencies
         run: |
           python -m pip install --upgrade pip
           pip install -r test_requirements.txt  # Ensure your requirements are listed here
@@ -30,16 +32,34 @@ jobs:
         run: |
           pytest --maxfail=5 --disable-warnings --cov=. --cov-report=xml
 
-      - name: Upload Coverage to Codecov
+      - name: Upload Python Coverage to Codecov
         uses: codecov/codecov-action@v4  # Send coverage reports to Codecov
         with:
           flags: python  
         env:
           CODECOV_TOKEN: ${{ secrets.CODECOV_TOKEN }}  
 
-      # Optional Debug Step
-      - name: Debug System Info
+      # Step 3: Debug Python System Info (Optional)
+      - name: Debug Python System Info
         run: |
           uname -a
           python --version
           pip freeze  # List installed packages
+
+      # Step 4: C++ Section
+      - name: Install C++ Dependencies
+        run: sudo apt-get update && sudo apt-get install -y cmake g++ build-essential
+
+      - name: Build and Run C++ Tests
+        run: |
+          mkdir -p cpp/build
+          cd cpp/build
+          cmake ..
+          make
+          ./test_cpp  # Replace with the name of your C++ test executable
+
+      # Step 5: Debug C++ System Info (Optional)
+      - name: Debug C++ System Info
+        run: |
+          g++ --version
+          cmake --version
