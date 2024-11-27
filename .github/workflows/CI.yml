@@ -45,21 +45,3 @@ jobs:
           uname -a
           python --version
           pip freeze  # List installed packages
-
-      # Step 4: C++ Section
-      - name: Install C++ Dependencies
-        run: sudo apt-get update && sudo apt-get install -y cmake g++ build-essential
-
-      - name: Build and Run C++ Tests
-        run: |
-          mkdir -p cpp/build
-          cd cpp/build
-          cmake ..
-          make
-          ./test_cpp  # Replace with the name of your C++ test executable
-
-      # Step 5: Debug C++ System Info (Optional)
-      - name: Debug C++ System Info
-        run: |
-          g++ --version
-          cmake --version
