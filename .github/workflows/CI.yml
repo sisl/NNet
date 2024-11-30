@@ -45,3 +45,17 @@ jobs:
           uname -a
           python --version
           pip freeze  # List installed packages
+
+      # Step 4: C++ Section
+      - name: Install C++ Build Tools
+        run: sudo apt-get update && sudo apt-get install -y build-essential cmake g++ libgtest-dev
+
+      - name: Configure and Build C++ Project
+        run: |
+          mkdir -p build
+          cd build
+          cmake ..
+          make
+
+      - name: Run C++ Tests
+        run: ./build/test_cpp  # Replace `test_cpp` with the name of your C++ test executable
