@@ -59,4 +59,20 @@ jobs:
 
       # Step 6: Run C++ Tests
       - name: Run C++ Tests
-        run: ./build/NNet  # Replace `NNet` with your executable name
+        run: ./build/NNet  
+
+         # Step 7: Generate C++ Code Coverage
+      - name: Generate Code Coverage Report
+        run: |
+          cd build
+          lcov --capture --directory . --output-file coverage.info
+          lcov --remove coverage.info '/usr/*' --output-file coverage.info
+          lcov --list coverage.info
+
+      # Step 8: Upload C++ Coverage to Codecov
+      - name: Upload C++ Coverage to Codecov
+        uses: codecov/codecov-action@v4
+        with:
+          flags: cpp
+        env:
+          CODECOV_TOKEN: ${{ secrets.CODECOV_TOKEN }}
