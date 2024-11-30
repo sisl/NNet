@@ -40,16 +40,18 @@ jobs:
         env:
           CODECOV_TOKEN: ${{ secrets.CODECOV_TOKEN }}
 
-      # Step 3: Install C++ build tools
+      # Step 3: Install C++ build tools and coverage tools
       - name: Install C++ Build Tools
-        run: sudo apt-get update && sudo apt-get install -y build-essential cmake g++ libgtest-dev
+        run: |
+          sudo apt-get update
+          sudo apt-get install -y build-essential cmake g++ lcov
 
-      # Step 4: Configure and build C++ project
+      # Step 4: Configure and build C++ project with coverage
       - name: Configure and Build C++ Project
         run: |
           mkdir -p build
           cd build
-          cmake ..  # Ensure CMakeLists.txt is at the root
+          cmake -DCMAKE_BUILD_TYPE=Debug ..
           make
 
       # Step 5: Verify build files
@@ -59,9 +61,9 @@ jobs:
 
       # Step 6: Run C++ Tests
       - name: Run C++ Tests
-        run: ./build/NNet  
+        run: ./build/NNet  # Replace with your actual C++ executable name if needed
 
-         # Step 7: Generate C++ Code Coverage
+      # Step 7: Generate C++ Code Coverage
       - name: Generate Code Coverage Report
         run: |
           cd build
