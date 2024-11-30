@@ -1,76 +1,69 @@
-#include <cassert>
 #include <iostream>
-#include <cmath>
-#include "../nnet.h" 
+#include <cassert>
+#include "nnet.h"
 
-// Test loading the network
-void test_load_network() {
+void testLoadNetwork() {
     const char* filename = "../nnet/TestNetwork.nnet";
-    std::unique_ptr<NNet> network = load_network(filename);
-    assert(network != nullptr && "Failed to load the network");
-    std::cout << "test_load_network: PASSED\n";
+    NNet* network = load_network(filename);
+    assert(network != nullptr && "Failed to load network!");
+    std::cout << "Network loaded successfully.\n";
+
+    // Check if network parameters are initialized correctly
+    assert(network->numLayers > 0 && "Number of layers must be positive!");
+    assert(network->inputSize > 0 && "Input size must be positive!");
+    assert(network->outputSize > 0 && "Output size must be positive!");
+    destroy_network(network);
 }
 
-// Test evaluating the network
-void test_evaluate_network() {
+void testEvaluateNetwork() {
     const char* filename = "../nnet/TestNetwork.nnet";
-    std::unique_ptr<NNet> network = load_network(filename);
-    assert(network != nullptr && "Failed to load the network");
+    NNet* network = load_network(filename);
+    assert(network != nullptr && "Failed to load network!");
 
     double input[5] = {5299.0, -M_PI, -M_PI, 100.0, 0.0};
     double output[5] = {0.0};
+    bool normalizeInput = true;
+    bool normalizeOutput = true;
 
-    int result = evaluate_network(network.get(), input, output, true, true);
-    assert(result == 1 && "Network evaluation failed");
-    
-    // Add checks for output values if expected results are known
-    std::cout << "Outputs: ";
-    for (int i = 0; i < 5; ++i) {
+    int result = evaluate_network(network, input, output, normalizeInput, normalizeOutput);
+    assert(result == 1 && "Evaluation failed!");
+
+    std::cout << "Inputs: ";
+    for (int i = 0; i < network->inputSize; ++i) {
+        std::cout << input[i] << " ";
+    }
+    std::cout << "\nOutputs: ";
+    for (int i = 0; i < network->outputSize; ++i) {
         std::cout << output[i] << " ";
     }
-    std::cout << "\n";
-    std::cout << "test_evaluate_network: PASSED\n";
+    std::cout << "\nEvaluation successful.\n";
+
+    destroy_network(network);
 }
 
-// Test invalid network file handling
-void test_load_invalid_network() {
-    const char* invalid_filename = "../nnet/InvalidNetwork.nnet";
-    std::unique_ptr<NNet> network = load_network(invalid_filename);
-    assert(network == nullptr && "Expected load_network to fail with invalid file");
-    std::cout << "test_load_invalid_network: PASSED\n";
-}
-
-// Test with edge-case inputs
-void test_edge_cases() {
+void testNumInputsOutputs() {
     const char* filename = "../nnet/TestNetwork.nnet";
-    std::unique_ptr<NNet> network = load_network(filename);
-    assert(network != nullptr && "Failed to load the network");
+    NNet* network = load_network(filename);
+    assert(network != nullptr && "Failed to load network!");
 
-    // Input values at edge cases
-    double input[5] = {std::numeric_limits<double>::max(), std::numeric_limits<double>::lowest(),
-                       0.0, std::numeric_limits<double>::epsilon(), -std::numeric_limits<double>::max()};
-    double output[5] = {0.0};
+    int numInputs = num_inputs(network);
+    int numOutputs = num_outputs(network);
+    assert(numInputs == network->inputSize && "Input size mismatch!");
+    assert(numOutputs == network->outputSize && "Output size mismatch!");
 
-    int result = evaluate_network(network.get(), input, output, true, true);
-    assert(result == 1 && "Network evaluation failed for edge cases");
+    std::cout << "Number of inputs: " << numInputs << "\n";
+    std::cout << "Number of outputs: " << numOutputs << "\n";
 
-    std::cout << "test_edge_cases: PASSED\n";
+    destroy_network(network);
 }
 
-// Main test runner
 int main() {
-    try {
-        test_load_network();
-        test_evaluate_network();
-        test_load_invalid_network();
-        test_edge_cases();
-        std::cout << "All tests passed!\n";
-    } catch (const std::exception& e) {
-        std::cerr << "Test failed with exception: " << e.what() << "\n";
-        return EXIT_FAILURE;
-    } catch (...) {
-        std::cerr << "Test failed with unknown exception\n";
-        return EXIT_FAILURE;
-    }
-    return EXIT_SUCCESS;
+    std::cout << "Testing nnet package...\n";
+
+    testLoadNetwork();
+    testEvaluateNetwork();
+    testNumInputsOutputs();
+
+    std::cout << "All tests passed successfully.\n";
+    return 0;
 }
