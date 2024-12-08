@@ -6,77 +6,48 @@
 
 void test_network(void)
 {
-    // Path to the network file
+    // Build network and time how long build takes
     const char* filename = "../nnet/TestNetwork.nnet";
-
-    // Load the network and time the operation
     clock_t create_network = clock();
-    void* network = load_network(filename);
-
-    if (network == NULL) {
-        printf("Error: Failed to load the network. Exiting test.\n");
-        return;
-    }
-
+    void *network = load_network(filename);
     clock_t t_build_network = clock() - create_network;
+    clock_t start = clock(), diff;
 
-    // Cast network to NNet to dynamically handle sizes
-    NNet* nnet = static_cast<NNet*>(network);
-
-    int inputSize = nnet->inputSize;
-    int outputSize = nnet->outputSize;
-
-    // Dynamically allocate input and output arrays
-    double* input1 = new double[inputSize];
-    double* output = new double[outputSize];
-
-    // Initialize inputs with example values
-    for (int i = 0; i < inputSize; ++i) {
-        input1[i] = (i == 0) ? 5299.0 : (i % 2 == 0 ? -M_PI : 100.0);
-    }
-
-    // Perform multiple evaluations
+    // Set up variables for evaluating network
     int num_runs = 10;
+    double input1[5] = {5299.0,-M_PI,-M_PI,100.0,0.0};
+    double output[5] = {0.0,0.0,0.0,0.0,0.0};
     bool normalizeInput = true;
-    bool normalizeOutput = true;
-
-    clock_t start = clock();
-    for (int i = 0; i < num_runs; ++i) {
-        // Modify input values slightly
+    bool normalizeOutput = true;   
+ 
+    for (int i=0; i<num_runs; i++){
         input1[0] += 1000.0;
-        for (int j = 1; j < inputSize; ++j) {
-            input1[j] += (j % 2 == 0) ? 0.2 : 50.0;
-        }
-
-        // Evaluate the network
-        if (evaluate_network(network, input1, output, normalizeInput, normalizeOutput) != 1) {
-            printf("Error: Network evaluation failed in iteration %d.\n", i + 1);
-            continue;
-        }
-
-        // Print inputs and outputs
+        input1[1] += 0.2;
+        input1[2] += 0.2;
+        input1[3] += 50; 
+        input1[4] += 50; 
+        evaluate_network(network,input1,output,normalizeInput, normalizeOutput);
+        
+        // Print out final input/output values
         printf("\nInputs:\n");
-        for (int j = 0; j < inputSize; ++j) {
-            printf("%.3f ", input1[j]);
-        }
-        printf("\nOutputs:\n");
-        for (int j = 0; j < outputSize; ++j) {
-            printf("%.7f ", output[j]);
-        }
-        printf("\n");
+        printf("%.3f, %.3f, %.3f, %.3f, %.3f\n",
+            input1[0],input1[1],input1[2],input1[3],input1[4]);
+
+        printf("Outputs:\n");
+        printf("%.7f, %.7f, %.7f, %.7f %.7f\n",
+            output[0],output[1],output[2],output[3],output[4]);
+        
     }
-    clock_t diff = clock() - start;
+    // Stop clock and then destruct network
+    diff = clock()-start;
+    destroy_network(network); 
+    
+    // Compute times and print out
+    double msec1 = diff*1000.0/CLOCKS_PER_SEC;
+    double msec = t_build_network*1000.0/CLOCKS_PER_SEC;
+    printf("Time taken to load network:  %.4f milliseconds\n",msec);
+    printf("Time taken for %d forward passes: %.4f milliseconds\n",num_runs,msec1);
 
-    // Cleanup
-    destroy_network(network);
-    delete[] input1;
-    delete[] output;
-
-    // Print timing results
-    double msec1 = diff * 1000.0 / CLOCKS_PER_SEC;
-    double msec = t_build_network * 1000.0 / CLOCKS_PER_SEC;
-    printf("Time taken to load network:  %.4f milliseconds\n", msec);
-    printf("Time taken for %d forward passes: %.4f milliseconds\n", num_runs, msec1);
 }
 
 int main(void)
