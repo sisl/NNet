@@ -4,15 +4,13 @@
 #include "nnet.h"
 
 // Load the neural network from a .nnet file
-NNet* load_network(const char* filename)
-{
+NNet* load_network(const char* filename) {
     FILE* fstream = fopen(filename, "r");
     if (fstream == NULL) {
         printf("Error: Cannot open file %s\n", filename);
         return NULL;
     }
 
-    // Allocate buffer for file reading
     int bufferSize = 10240;
     char* buffer = new char[bufferSize];
     if (buffer == NULL) {
@@ -30,7 +28,6 @@ NNet* load_network(const char* filename)
         return NULL;
     }
 
-    // Read the first meaningful line (skip comments)
     line = fgets(buffer, bufferSize, fstream);
     while (line != NULL && strstr(line, "//") != NULL) {
         line = fgets(buffer, bufferSize, fstream);
@@ -44,7 +41,6 @@ NNet* load_network(const char* filename)
         return NULL;
     }
 
-    // Parse network parameters
     char* record = strtok(line, ",\n");
     if (record == NULL) {
         printf("Error: Invalid .nnet file format\n");
@@ -59,7 +55,6 @@ NNet* load_network(const char* filename)
     nnet->outputSize = atoi(strtok(NULL, ",\n"));
     nnet->maxLayerSize = atoi(strtok(NULL, ",\n"));
 
-    // Allocate layer sizes
     nnet->layerSizes = new int[nnet->numLayers + 1];
     if (nnet->layerSizes == NULL) {
         printf("Error: Memory allocation failed for layerSizes\n");
@@ -84,18 +79,12 @@ NNet* load_network(const char* filename)
         record = strtok(NULL, ",\n");
     }
 
-    // Initialize other network parameters (mins, maxes, means, ranges)
-    // Ensure these arrays are allocated properly and check for malformed files
-    // ...
-
     delete[] buffer;
     fclose(fstream);
     return nnet;
 }
 
-// Evaluate the neural network
-int evaluate_network(void* network, double* input, double* output, bool normalizeInput, bool normalizeOutput)
-{
+int evaluate_network(void* network, double* input, double* output, bool normalizeInput, bool normalizeOutput) {
     if (network == NULL) {
         printf("Data is Null!\n");
         return -1;
@@ -124,8 +113,29 @@ int evaluate_network(void* network, double* input, double* output, bool normaliz
         }
     }
 
-    // Forward pass through the network (unchanged logic)
-    // ...
-
     return 1;
+}
+
+void destroy_network(void* network) {
+    NNet* nnet = static_cast<NNet*>(network);
+    if (nnet != NULL) {
+        for (int i = 0; i < nnet->numLayers; i++) {
+            for (int row = 0; row < nnet->layerSizes[i + 1]; row++) {
+                delete[] nnet->matrix[i][0][row];
+                delete[] nnet->matrix[i][1][row];
+            }
+            delete[] nnet->matrix[i][0];
+            delete[] nnet->matrix[i][1];
+            delete[] nnet->matrix[i];
+        }
+        delete[] nnet->matrix;
+        delete[] nnet->layerSizes;
+        delete[] nnet->mins;
+        delete[] nnet->maxes;
+        delete[] nnet->means;
+        delete[] nnet->ranges;
+        delete[] nnet->inputs;
+        delete[] nnet->temp;
+        delete nnet;
+    }
 }
