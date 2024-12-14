@@ -3,10 +3,10 @@ name: CI Build and Test
 on:
   push:
     branches:
-      - main  # Run on push to the main branch
+      - main
   pull_request:
     branches:
-      - main  # Run on pull requests to the main branch
+      - main
   workflow_dispatch:
 
 jobs:
@@ -40,24 +40,44 @@ jobs:
         env:
           CODECOV_TOKEN: ${{ secrets.CODECOV_TOKEN }}
 
-      # Step 3: Install C++ build tools
+      # Step 3: Install C++ build and coverage tools
       - name: Install C++ Build Tools
-        run: sudo apt-get update && sudo apt-get install -y build-essential cmake g++ libgtest-dev
+        run: |
+          sudo apt-get update
+          sudo apt-get install -y build-essential cmake g++ lcov
 
-      # Step 4: Configure and build C++ project
-      - name: Configure and Build C++ Project
+      # Step 4: Configure and build C++ project with coverage
+      - name: Configure and Build C++ Project with Coverage
         run: |
           mkdir -p build
           cd build
-          cmake ..  # Ensure CMakeLists.txt is at the root
+          cmake -DCMAKE_BUILD_TYPE=Debug -DCMAKE_CXX_FLAGS="--coverage" ..
           make
 
-      # Step 5: Verify build files
-      - name: Verify Build Files
-        run: |
-          ls build  # Debug: List the contents of the build directory
-
-      # Step 6: Run C++ Tests
+      # Step 5: Run C++ Tests
       - name: Run C++ Tests
-        run: ./build/NNet  # Replace `NNet` with your executable name
+        run: ./build/NNet 
 
+      # Step 6: Generate Coverage Report for C++ Code
+      - name: Generate C++ Coverage Report
+        run: |
+          cd build
+          lcov --capture --directory . --output-file coverage.info --include "*/cpp/*" --ignore-errors unused
+          lcov --remove coverage.info '/usr/*' --output-file coverage.info --ignore-errors unused
+          lcov --list coverage.info
+
+      # Step 7: Upload C++ Coverage to Codecov
+      - name: Upload C++ Coverage to Codecov
+        uses: codecov/codecov-action@v4
+        with:
+          flags: cpp
+        env:
+          CODECOV_TOKEN: ${{ secrets.CODECOV_TOKEN }}
+
+      # Debugging step 
+      - name: Debug Coverage Files
+        if: failure()
+        run: |
+          cd build
+          ls -l *.info
+          cat coverage.info
