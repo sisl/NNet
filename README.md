@@ -1,7 +1,7 @@
 ## NNet Repository
 
-[![Python Tests](https://github.com/Aero-Spec/NNet/actions/workflows/CI.yml/badge.svg)](https://github.com/sisl/NNet/actions/workflows/CI.yml)
-[![codecov](https://codecov.io/gh/Aero-Spec/NNet/graph/badge.svg?token=6ACfFDS9CG)](https://codecov.io/gh/sisl/NNet)
+[![Python Tests](https://github.com/sisl/NNet/actions/workflows/CI.yml/badge.svg)](https://github.com/sisl/NNet/actions/workflows/CI.yml)
+[![codecov](https://codecov.io/gh/sisl/NNet/graph/badge.svg?token=6ACfFDS9CG)](https://codecov.io/gh/sisl/NNet)
 
 ### Introduction
 The .nnet file format for fully connected ReLU networks was originially created in 2016 to define aircraft collision avoidance neural networks in a human-readable text document. Since then it was incorporated into the Reluplex repository and used to define benchmark neural networks. This format is a simple text-based format for feed-forward, fully-connected, ReLU-activated neural networks. It is not affiliated with Neuroph or other frameworks that produce files with the .nnet extension.
