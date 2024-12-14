@@ -3,10 +3,10 @@ name: CI Build and Test
 on:
   push:
     branches:
-      - main
+      - main  # Run on push to the main branch
   pull_request:
     branches:
-      - main
+      - main  # Run on pull requests to the main branch
   workflow_dispatch:
 
 jobs:
@@ -24,58 +24,51 @@ jobs:
         with:
           python-version: '3.10'
 
-      # Step 3: Install Python and Gcovr Dependencies
-      - name: Install Python and Gcovr Dependencies
+      - name: Install Python Dependencies
         run: |
           python -m pip install --upgrade pip
           pip install -r test_requirements.txt
-          pip install gcovr
-
-      # Step 4: Run Python Tests with Coverage
       - name: Run Python Tests with Coverage
         run: |
           pytest --maxfail=5 --disable-warnings --cov=. --cov-report=xml
+      - name: Upload Python Coverage to Codecov
+        uses: codecov/codecov-action@v4
+        with:
+          flags: python
+        env:
+          CODECOV_TOKEN: ${{ secrets.CODECOV_TOKEN }}
 
-      # Step 5: Install C++ Build Tools
+      # Step 3: Install C++ build tools and coverage tools
       - name: Install C++ Build Tools
         run: |
           sudo apt-get update
           sudo apt-get install -y build-essential cmake g++ lcov
-
-      # Step 6: Configure and Build C++ Project with Coverage
+      # Step 4: Configure and build C++ project with coverage
       - name: Configure and Build C++ Project
         run: |
           mkdir -p build
           cd build
-          cmake -DCMAKE_BUILD_TYPE=Debug -DCMAKE_CXX_FLAGS="--coverage" ..
+          cmake -DCMAKE_BUILD_TYPE=Debug ..
           make
-
-      # Step 7: Run C++ Tests
+      # Step 5: Verify build files
+      - name: Verify Build Files
+        run: |
+          ls build  # Debug: List the contents of the build directory
+      # Step 6: Run C++ Tests
       - name: Run C++ Tests
-        run: ./build/NNet  # Replace `NNet` with your C++ executable name
+        run: ./build/NNet  # Replace with your actual C++ executable name if needed
 
-      # Step 8: Generate C++ Coverage Report
-      - name: Generate C++ Coverage Report
+      # Step 7: Generate C++ Code Coverage
+      - name: Generate Code Coverage Report
         run: |
           cd build
-          lcov --capture --directory . --output-file c++_coverage.info --include "*/cpp/*" --ignore-errors unused
-          lcov --remove c++_coverage.info '/usr/*' --output-file c++_coverage.info --ignore-errors unused
-
-      # Step 9: Convert Python Coverage to LCOV Format
-      - name: Convert Python Coverage to LCOV
-        run: |
-          gcovr --add-tracefile coverage.xml --filter . --output python_coverage.info --convert-xml
-
-      # Step 10: Combine Python and C++ Coverage
-      - name: Combine Coverage Reports
-        run: |
-          lcov --add-tracefile build/c++_coverage.info --add-tracefile python_coverage.info --output-file combined_coverage.info
-          lcov --list combined_coverage.info
-
-      # Step 11: Upload Combined Coverage to Codecov
-      - name: Upload Combined Coverage to Codecov
+          lcov --capture --directory . --output-file coverage.info
+          lcov --remove coverage.info '/usr/*' --output-file coverage.info
+          lcov --list coverage.info
+      # Step 8: Upload C++ Coverage to Codecov
+      - name: Upload C++ Coverage to Codecov
         uses: codecov/codecov-action@v4
         with:
-          flags: combined
+          flags: cpp
         env:
           CODECOV_TOKEN: ${{ secrets.CODECOV_TOKEN }}
