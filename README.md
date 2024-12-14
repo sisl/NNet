@@ -1,6 +1,6 @@
 ## NNet Repository
 
-[![Python Tests](https://github.com/sisl/NNet/actions/workflows/CI.yml/badge.svg)](https://github.com/sisl/NNet/actions/workflows/CI.yml)
+[![CI Build](https://github.com/sisl/NNet/actions/workflows/CI.yml/badge.svg)](https://github.com/sisl/NNet/actions/workflows/CI.yml)
 [![codecov](https://codecov.io/gh/sisl/NNet/graph/badge.svg?token=6ACfFDS9CG)](https://codecov.io/gh/sisl/NNet)
 
 ### Introduction
