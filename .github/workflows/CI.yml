@@ -51,13 +51,14 @@ jobs:
         run: |
           mkdir -p build
           cd build
-          cmake -DCMAKE_BUILD_TYPE=Debug ..
+          cmake -DCMAKE_BUILD_TYPE=Debug -DCMAKE_CXX_FLAGS="--coverage" ..
           make
 
       # Step 5: Verify build files
       - name: Verify Build Files
         run: |
-          ls build  # Debug: List the contents of the build directory
+          cd build
+          ls  # Debug: List the contents of the build directory
 
       # Step 6: Run C++ Tests
       - name: Run C++ Tests
@@ -68,7 +69,7 @@ jobs:
         run: |
           cd build
           lcov --capture --directory . --output-file coverage.info
-          lcov --remove coverage.info '/usr/*' --output-file coverage.info
+          lcov --remove coverage.info '/usr/*' --output-file coverage.info --ignore-errors unused
           lcov --list coverage.info
 
       # Step 8: Upload C++ Coverage to Codecov
@@ -78,3 +79,11 @@ jobs:
           flags: cpp
         env:
           CODECOV_TOKEN: ${{ secrets.CODECOV_TOKEN }}
+
+      # Step 9: Debug Coverage Files (Optional)
+      - name: Debug Coverage Files
+        run: |
+          cd build
+          ls -l
+          ls -l *.gcda
+          cat coverage.info
