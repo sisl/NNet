@@ -42,9 +42,9 @@ jobs:
 
       # Step 3: Install C++ build tools
       - name: Install C++ Build Tools
-        run: sudo apt-get update && sudo apt-get install -y build-essential cmake g++ libgtest-dev lcov
+        run: sudo apt-get update && sudo apt-get install -y build-essential cmake g++ lcov
 
-      # Step 4: Configure and build C++ project
+      # Step 4: Configure and Build C++ Project
       - name: Configure and Build C++ Project
         run: |
           mkdir -p build
@@ -52,18 +52,24 @@ jobs:
           cmake -DCMAKE_CXX_FLAGS="--coverage" ..  # Enable coverage flags
           make
 
-      # Step 5: Run C++ Tests and Generate Coverage
+      # Step 5: Run C++ Tests
       - name: Run C++ Tests
         run: |
           cd build
           ./NNet  # Replace `NNet` with your executable name
-          lcov --capture --directory . --output-file coverage.info
 
-      # Step 6: Upload C++ Coverage to Codecov
+      # Step 6: Generate C++ Coverage Report
+      - name: Generate C++ Coverage Report
+        run: |
+          cd build
+          lcov --capture --directory . --output-file coverage.info
+          lcov --list coverage.info
+
+      # Step 7: Upload C++ Coverage to Codecov
       - name: Upload C++ Coverage to Codecov
         uses: codecov/codecov-action@v4
         with:
           flags: cpp
-          files: build/coverage.info  # Path to the coverage file
+          files: build/coverage.info  # Path to the coverage report
         env:
           CODECOV_TOKEN: ${{ secrets.CODECOV_TOKEN }}
