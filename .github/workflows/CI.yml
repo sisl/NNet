@@ -1,7 +1,7 @@
 name: CI Build and Test
 
 on:
-  push:
+  push: 
     branches:
       - main  # Run on push to the main branch
   pull_request:
