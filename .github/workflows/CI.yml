@@ -56,7 +56,7 @@ jobs:
 
       # Step 5: Run C++ Tests
       - name: Run C++ Tests
-        run: ./build/NNet 
+        run: ./build/NNet  # Replace `NNet` with your executable name
 
       # Step 6: Generate Coverage Report for C++ Code
       - name: Generate C++ Coverage Report
@@ -74,7 +74,7 @@ jobs:
         env:
           CODECOV_TOKEN: ${{ secrets.CODECOV_TOKEN }}
 
-      # Debugging step 
+      # Debugging step (optional)
       - name: Debug Coverage Files
         if: failure()
         run: |
