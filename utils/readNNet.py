@@ -1,4 +1,4 @@
-import numpy as np 
+import numpy as np
 
 def readNNet(nnetFile, withNorm=False):
     '''
@@ -12,68 +12,56 @@ def readNNet(nnetFile, withNorm=False):
         weights: List of weight matrices for fully connected network
         biases: List of bias vectors for fully connected network
     '''
-    
-    
-        
-    # Open NNet file
-    f = open(nnetFile,'r')
-    
-    # Skip header lines
-    line = f.readline()
-    while line[:2]=="//":
-        line = f.readline()
-        
-    # Extract information about network architecture
-    record = line.split(',')
-    numLayers   = int(record[0])
-    inputSize   = int(record[1])
+    try:
+        # Open NNet file
+        with open(nnetFile, 'r') as f:
+            # Skip header lines
+            line = f.readline()
+            while line[:2] == "//":
+                line = f.readline()
 
-    line = f.readline()
-    record = line.split(',')
-    layerSizes = np.zeros(numLayers+1,'int')
-    for i in range(numLayers+1):
-        layerSizes[i]=int(record[i])
+            # Extract information about network architecture
+            record = line.split(',')
+            numLayers = int(record[0])
+            inputSize = int(record[1])
 
-    # Skip extra obsolete parameter line
-    f.readline()
-    
-    # Read the normalization information
-    line = f.readline()
-    inputMins = [float(x) for x in line.strip().split(",") if x]
+            line = f.readline()
+            layerSizes = [int(x) for x in line.strip().split(',') if x]
 
-    line = f.readline()
-    inputMaxes = [float(x) for x in line.strip().split(",") if x]
+            # Ensure that the architecture information is correct
+            assert len(layerSizes) == numLayers + 1, "Layer sizes don't match number of layers."
 
-    line = f.readline()
-    means = [float(x) for x in line.strip().split(",") if x]
+            # Skip extra obsolete parameter line
+            f.readline()
 
-    line = f.readline()
-    ranges = [float(x) for x in line.strip().split(",") if x]
+            # Read the normalization information
+            inputMins = [float(x) for x in f.readline().strip().split(",") if x]
+            inputMaxes = [float(x) for x in f.readline().strip().split(",") if x]
+            means = [float(x) for x in f.readline().strip().split(",") if x]
+            ranges = [float(x) for x in f.readline().strip().split(",") if x]
 
-    # Read weights and biases
-    weights=[]
-    biases = []
-    for layernum in range(numLayers):
+            # Read weights and biases
+            weights = []
+            biases = []
+            for layernum in range(numLayers):
+                previousLayerSize = layerSizes[layernum]
+                currentLayerSize = layerSizes[layernum + 1]
 
-        previousLayerSize = layerSizes[layernum]
-        currentLayerSize = layerSizes[layernum+1]
-        weights.append([])
-        biases.append([])
-        weights[layernum] = np.zeros((currentLayerSize,previousLayerSize))
-        for i in range(currentLayerSize):
-            line=f.readline()
-            aux = [float(x) for x in line.strip().split(",")[:-1]]
-            for j in range(previousLayerSize):
-                weights[layernum][i,j] = aux[j]
-        #biases
-        biases[layernum] = np.zeros(currentLayerSize)
-        for i in range(currentLayerSize):
-            line=f.readline()
-            x = float(line.strip().split(",")[0])
-            biases[layernum][i] = x
+                weight_matrix = np.zeros((currentLayerSize, previousLayerSize))
+                for i in range(currentLayerSize):
+                    line = f.readline()
+                    weight_matrix[i] = [float(x) for x in line.strip().split(",")[:-1]]
+                weights.append(weight_matrix)
 
-    f.close()
-    
-    if withNorm:
-        return weights, biases, inputMins, inputMaxes, means, ranges
-    return weights, biases
+                bias_vector = np.zeros(currentLayerSize)
+                for i in range(currentLayerSize):
+                    line = f.readline()
+                    bias_vector[i] = float(line.strip().split(",")[0])
+                biases.append(bias_vector)
+
+            if withNorm:
+                return weights, biases, inputMins, inputMaxes, means, ranges
+            return weights, biases
+    except Exception as e:
+        print(f"Error reading NNet file: {e}")
+        raise

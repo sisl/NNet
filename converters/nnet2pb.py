@@ -1,55 +1,62 @@
 import tensorflow as tf
-import numpy as np 
+import numpy as np
 import sys
-from tensorflow.python.framework import graph_util
 import os
-os.environ["CUDA_VISIBLE_DEVICES"] = "-1"
+from tensorflow.python.framework.convert_to_constants import convert_variables_to_constants_v2
 from NNet.utils.readNNet import readNNet
 from NNet.utils.normalizeNNet import normalizeNNet
 
-def nnet2pb(nnetFile, pbFile="", output_node_names = "y_out", normalizeNetwork=False):
-    '''
-    Read a .nnet file and create a frozen Tensorflow graph and save to a .pb file
-    
+# Disable GPU usage
+os.environ["CUDA_VISIBLE_DEVICES"] = "-1"
+
+def nnet2pb(
+    nnetFile: str, 
+    pbFile: str = "", 
+    output_node_names: str = "y_out", 
+    normalizeNetwork: bool = False
+) -> None:
+    """
+    Convert a .nnet file to a frozen TensorFlow graph (.pb file).
+
     Args:
-        nnetFile (str): A .nnet file to convert to Tensorflow format
-        pbFile (str, optional): Name for the created .pb file. Default: ""
-        output_node_names (str, optional): Name of the final operation in the Tensorflow graph. Default: "y_out"
-    '''
+        nnetFile (str): Path to the .nnet file to convert.
+        pbFile (str, optional): Name for the .pb file. Defaults to same as the input file name.
+        output_node_names (str, optional): Name of the output operation. Defaults to 'y_out'.
+        normalizeNetwork (bool): Normalize weights and biases if True. Defaults to False.
+    """
+    # Read network weights and biases
     if normalizeNetwork:
         weights, biases = normalizeNNet(nnetFile)
     else:
         weights, biases = readNNet(nnetFile)
+
     inputSize = weights[0].shape[1]
-    
-    # Default pb filename if none are specified
-    if pbFile=="":
-        pbFile = nnetFile[:-4]+'pb'
-    
-    # Reset tensorflow and load a session using only CPUs
-    tf.reset_default_graph()
-    sess = tf.Session()
 
-    # Define model and assign values to tensors
-    currentTensor = tf.placeholder(tf.float32, [None, inputSize],name='input')
-    for i in range(len(weights)):
-        W = tf.get_variable("W%d"%i, shape=weights[i].T.shape)
-        b = tf.get_variable("b%d"%i, shape=biases[i].shape)
-        
-        # Use ReLU for all but last operation, and name last operation to desired name
-        if i!=len(weights)-1:
-            currentTensor = tf.nn.relu(tf.matmul(currentTensor ,W) + b)
-        else:
-            currentTensor =  tf.add(tf.matmul(currentTensor ,W), b,name=output_node_names)
+    # Default pb filename if not provided
+    if not pbFile:
+        pbFile = f"{nnetFile[:-5]}.pb"
 
-        # Assign values to tensors
-        sess.run(tf.assign(W,weights[i].T))
-        sess.run(tf.assign(b,biases[i]))
-    
-    # Freeze the graph to write the pb file
-    freeze_graph(sess,pbFile,output_node_names)
-    
-def freeze_graph(sess, output_graph_name, output_node_names):
+    class NNetModel(tf.Module):
+        def __init__(self, weights, biases):
+            super().__init__()
+            self.weights = [tf.Variable(w.T, dtype=tf.float32) for w in weights]
+            self.biases = [tf.Variable(b, dtype=tf.float32) for b in biases]
+
+        @tf.function(input_signature=[tf.TensorSpec([None, inputSize], tf.float32)])
+        def __call__(self, x):
+            # Build the model layer by layer
+            for i in range(len(self.weights) - 1):
+                x = tf.nn.relu(tf.matmul(x, self.weights[i]) + self.biases[i])
+            return tf.add(tf.matmul(x, self.weights[-1]), self.biases[-1], name=output_node_names)
+
+    # Create and save the model
+    model = NNetModel(weights, biases)
+    concrete_func = model.__call__.get_concrete_function()
+
+    # Convert to a frozen graph
+    frozen_func = convert_variables_to_constants_v2(concrete_func)
+    frozen_graph_def = frozen_func.graph.as_graph_def()
+
     '''
     Given a session with a graph loaded, save only the variables needed for evaluation to a .pb file
     
@@ -59,27 +66,22 @@ def freeze_graph(sess, output_graph_name, output_node_names):
         output_node_names (str): Name of the output operation in the graph, comma separated if there are multiple output operations
     '''
     
-    input_graph_def = tf.get_default_graph().as_graph_def()
-    output_graph_def = graph_util.convert_variables_to_constants(
-        sess,                        # The session is used to retrieve the weights
-        input_graph_def,             # The graph_def is used to retrieve the nodes 
-        output_node_names.split(",") # The output node names are used to select the useful nodes
-    ) 
+    # Save the frozen graph to a .pb file
+    tf.io.write_graph(frozen_graph_def, ".", pbFile, as_text=False)
+    print(f"Saved frozen graph to {pbFile}")
 
-    # Finally we serialize and dump the output graph to the file
-    with tf.gfile.GFile(output_graph_name, "w") as f:
-        f.write(output_graph_def.SerializeToString())
-  
-if __name__ == '__main__':
-    # Read user inputs and run writePB function
-    if len(sys.argv)>1:
-        nnetFile = sys.argv[1]
-        pbFile = ""
-        output_node_names = "y_out"
-        if len(sys.argv)>2:
-            pbFile = sys.argv[2]
-        if len(sys.argv)>3:
-            output_node_names = argv[3]
-        nnet2pb(nnetFile,pbFile,output_node_names)
-    else:
-        print("Need to specify which .nnet file to convert to Tensorflow frozen graph!")
+def main():
+    # Parse command-line arguments
+    if len(sys.argv) < 2:
+        print("Usage: python nnet2pb.py <nnetFile> [pbFile] [output_node_names]")
+        sys.exit(1)
+
+    nnetFile = sys.argv[1]
+    pbFile = sys.argv[2] if len(sys.argv) > 2 else ""
+    output_node_names = sys.argv[3] if len(sys.argv) > 3 else "y_out"
+
+    # Call the conversion function
+    nnet2pb(nnetFile, pbFile, output_node_names)
+
+if __name__ == "__main__":
+    main()
